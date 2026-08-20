@@ -1,0 +1,39 @@
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+
+# Distribution / packaging
+build/
+dist/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / output
+*.log
+result.txt
+
+
+# File
+main.py
+testmain_limit5.py
+testmain.py
