@@ -2,48 +2,43 @@
 db_manager.py
 ==============
 
-TaskController와 동일한 패턴(Process + task_queue + result_queue)을 따르는 DB 매니저.
-
-Control Manager가 task_queue에 (task_name, args) 형태로 작업을 넣으면,
-이 프로세스가 그걸 받아서 알맞은 Repository 메서드를 호출하고,
-결과를 result_queue에 담아 돌려준다.
+프로세스/큐 없이, 그냥 파이썬 모듈(클래스)로 동작하는 DB 매니저.
+호출하는 쪽(Control Manager)이 같은 이벤트 루프 안에서 직접 await로 호출한다.
 """
-
-import asyncio
-from multiprocessing import Process, Queue
 
 from ai_rag_comm import Controller, load_config, setup_logging
 from .repositories import ApiDataRepository, CredentialRepository, MessageRepository, SessionRepository
 
 
-class DBManager(Process):
+class DBManager:
     """
-    별도 프로세스로 동작하는 DB 매니저.
-    TaskController와 동일하게 Process를 상속하고, task_queue/result_queue로 통신한다.
+    DB 작업을 처리하는 매니저. 더 이상 별도 프로세스가 아니라 평범한 클래스다.
+
+    사용법:
+        manager = DBManager()
+        await manager.init()
+        result = await manager.call("get_or_create_session", user_id=...)
+        await manager.close()
     """
 
-    def __init__(self, result_queue: Queue = None):
-        super().__init__()
-        self.task_queue = Queue()
-        self.result_queue = result_queue
+    def __init__(self):
+        self._controller = None
+        self._handlers = None
 
-    def run(self) -> None:
-        asyncio.run(self._main())
-
-    async def _main(self) -> None:
+    async def init(self) -> None:
         config = load_config()
         setup_logging(config.server.log_level)
 
-        controller = Controller(config=config)
-        await controller.init()
-        db = controller.get_services()["db"]
+        self._controller = Controller(config=config)
+        await self._controller.init()
+        db = self._controller.get_services()["db"]
 
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
         credential_repo = CredentialRepository(db)
         api_data_repo = ApiDataRepository(db)
 
-        handlers = {
+        self._handlers = {
             "get_or_create_session": session_repo.select_one,
             "list_sessions": session_repo.select_many,
             "update_overall_summary": session_repo.update,
@@ -61,21 +56,20 @@ class DBManager(Process):
             "delete_api_data": api_data_repo.delete,
         }
 
-        loop = asyncio.get_event_loop()
+    async def call(self, task_name: str, **kwargs):
+        """
+        task_name에 해당하는 Repository 메서드를 직접 호출한다.
+        큐 왕복 없이 await 하나로 끝난다.
+        """
+        if self._handlers is None:
+            raise RuntimeError("DBManager.init()을 먼저 호출해야 합니다.")
 
-        try:
-            while True:
-                task_name, args = await loop.run_in_executor(None, self.task_queue.get)
+        handler = self._handlers.get(task_name)
+        if handler is None:
+            raise ValueError(f"알 수 없는 task: {task_name}")
 
-                handler = handlers.get(task_name)
-                if handler is None:
-                    self.result_queue.put({"ok": False, "error": f"알 수 없는 task: {task_name}"})
-                    continue
+        return await handler(**kwargs)
 
-                try:
-                    result = await handler(**args)
-                    self.result_queue.put({"ok": True, "result": result})
-                except Exception as e:
-                    self.result_queue.put({"ok": False, "error": str(e)})
-        finally:
-            await controller.close()
+    async def close(self) -> None:
+        if self._controller is not None:
+            await self._controller.close()
