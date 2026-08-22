@@ -35,7 +35,7 @@ class SessionRepository(BaseDatabaseInterface):
         특정 사용자의 세션 목록을 최근 활동순으로 반환한다.
 
         필수 kwargs: user_id (str)
-        반환: list[dict]
+        반환: list[dict], 각 dict 키: session_id, user_id, created_at, updated_at, overall_summary
         """
         user_id = kwargs["user_id"]
         query = """
@@ -52,7 +52,7 @@ class SessionRepository(BaseDatabaseInterface):
         (보통은 select_one의 get-or-create를 쓰고, 이건 강제로 새 세션이 필요할 때만 사용)
 
         필수 kwargs: user_id (str)
-        반환: 새로 생성된 세션 row (dict)
+        반환: 새로 생성된 세션 row (dict), 키: session_id, user_id, created_at, updated_at, overall_summary
         """
         user_id = kwargs["user_id"]
         query = """
@@ -67,7 +67,7 @@ class SessionRepository(BaseDatabaseInterface):
         세션 전체 요약(overall_summary)을 갱신한다.
 
         필수 kwargs: session_id (str), summary (str)
-        반환: 갱신된 세션 row (dict)
+        반환: 갱신된 세션 row (dict), 키: session_id, user_id, created_at, updated_at, overall_summary
         """
         session_id = kwargs["session_id"]
         summary = kwargs["summary"]
@@ -112,7 +112,7 @@ class SessionRepository(BaseDatabaseInterface):
         BaseRepositoryInterface가 요구하는 필수 메서드는 아니고, 필요해서 추가한 메서드다.
 
         필수 kwargs: session_id (str), topic (str)
-        반환: 갱신된 세션 row (dict)
+        반환: 갱신된 세션 row (dict), 키: session_id, user_id, created_at, updated_at, overall_summary, current_topic
         """
         session_id = kwargs["session_id"]
         topic = kwargs["topic"]
