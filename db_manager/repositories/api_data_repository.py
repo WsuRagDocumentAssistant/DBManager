@@ -43,6 +43,9 @@ class ApiDataRepository(BaseDatabaseInterface):
         entity.json은 이미 직렬화된 JSON 문자열이므로 json.dumps()를 다시 하지 않는다.
 
         필수 kwargs:
+        
+        
+        
             metadata (str)  — entity.metadata 그대로
             json (str)      — entity.json 그대로 (이미 JSON 문자열)
         반환: 저장된 row (dict)

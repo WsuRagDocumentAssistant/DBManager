@@ -9,11 +9,11 @@ DB 관련 작업(세션, 메시지, API 키, 공공데이터)을 처리하는 �
 from db_manager import DBManager
 
 manager = DBManager()
-await manager.init()     # 처음 한 번만 호출 (DB 연결 준비, handlers 구성)
+manager.init()     # 처음 한 번만 호출 (DB 연결 준비, handlers 구성)
 
-result = await manager.call("작업이름", 필요한_인자=값, ...)
+result = manager.call("작업이름", 필요한_인자=값, ...)
 
-await manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
+manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ```
 
 - `init()`을 호출하기 전에 `call()`을 부르면 `RuntimeError`가 발생한다.
@@ -22,7 +22,7 @@ await manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 11개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 14개 작업이다.
 
 ### `get_or_create_session`
 - **하는 일**: 기존 세션을 이어가거나, 없으면(또는 타임아웃 지났으면) 새로 만든다 (get-or-create).
@@ -81,6 +81,20 @@ await manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `id (int)`
 - **반환값**: 실제로 삭제됐으면 `True` (`bool`)
 
+### `search_word`
+- **하는 일**: 단어를 정확히 일치하는 것만 검색한다 (부분일치 안 됨).
+- **필수 인자**: `word (str)`
+- **반환값**: `{"id": ..., "word": ..., "replacement": ...}` 또는 결과 없으면 None
+
+### `list_all_words`
+- **하는 일**: 등록된 단어/대체어 전체 목록을 조회한다.
+- **필수 인자**: 없음
+- **반환값**: list of dict
+
+### `insert_word`
+- **하는 일**: 새 단어/대체어 쌍을 등록한다.
+- **필수 인자**: `word (str)`, `replacement (str)`
+- **반환값**: 등록된 row (dict)
 
 ## 주의사항
 

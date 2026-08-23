@@ -2,34 +2,41 @@
 db_manager.py
 ==============
 
-프로세스/큐 없이, 그냥 파이썬 모듈(클래스)로 동작하는 DB 매니저.
-호출하는 쪽(Control Manager)이 같은 이벤트 루프 안에서 직접 await로 호출한다.
+DB 매니저. 내부적으로는 비동기(async) Repository 메서드들을 쓰지만,
+밖에서 호출하는 쪽은 await 없이 동기 함수처럼 쓸 수 있다.
+
+이벤트 루프 하나를 인스턴스 생성 시 만들어서 계속 재사용한다
+(asyncio.run()을 매번 쓰면 DB 커넥션 풀이 "다른 루프에 묶였다"는
+에러가 나므로, 반드시 같은 루프를 계속 써야 한다).
 """
 
+import asyncio
+
 from ai_rag_comm import Controller, load_config, setup_logging
-from .repositories import ApiDataRepository, MessageRepository, SessionRepository
+from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
 
 
 class DBManager:
     """
-    DB 작업을 처리하는 매니저. 더 이상 별도 프로세스가 아니라 평범한 클래스다.
+    DB 작업을 처리하는 매니저. 동기 인터페이스로 쓸 수 있다.
 
     사용법:
         manager = DBManager()
-        await manager.init()
-        result = await manager.call("get_or_create_session", user_id=...)
-        await manager.close()
+        manager.init()
+        result = manager.call("get_or_create_session", user_id=...)
+        manager.close()
     """
 
     def __init__(self):
         self._controller = None
         self._handlers = None
+        self._loop = asyncio.new_event_loop()  # 인스턴스 생성 시 딱 한 번만 만듦
 
-    async def init(self) -> None:
-        """
-        DB 연결을 준비하고, task_name → Repository 메서드 매핑(handlers)을 구성한다.
-        `call()`을 쓰기 전에 반드시 한 번 호출해야 한다.
-        """
+    def init(self) -> None:
+        """DB 연결을 준비하고 handlers를 구성한다 (동기 호출)."""
+        self._loop.run_until_complete(self._async_init())
+
+    async def _async_init(self) -> None:
         config = load_config()
         setup_logging(config.server.log_level)
 
@@ -40,6 +47,7 @@ class DBManager:
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
         api_data_repo = ApiDataRepository(db)
+        word_dict_repo = WordDictionaryRepository(db)
 
         self._handlers = {
             "get_or_create_session": session_repo.select_one,
@@ -53,17 +61,15 @@ class DBManager:
             "list_api_data": api_data_repo.select_many,
             "insert_api_data": api_data_repo.insert,
             "delete_api_data": api_data_repo.delete,
+            "search_word": word_dict_repo.select_one,
+            "list_all_words": word_dict_repo.select_many,
+            "insert_word": word_dict_repo.insert,
         }
 
-    async def call(self, task_name: str, **kwargs):
+    def call(self, task_name: str, **kwargs):
         """
-        task_name에 해당하는 Repository 메서드를 직접 호출한다.
-        큐 왕복 없이 await 하나로 끝난다.
-
-        필수: init()을 먼저 호출해야 한다 (안 하면 RuntimeError).
-        task_name이 handlers에 없으면 ValueError를 낸다.
-        나머지 kwargs는 그대로 해당 Repository 메서드에 전달되며,
-        Repository 쪽에서 발생한 예외는 감싸지 않고 그대로 전파된다.
+        task_name에 해당하는 Repository 메서드를 실행한다 (동기 호출).
+        내부적으로는 같은 이벤트 루프를 재사용해서 비동기 메서드를 실행한다.
         """
         if self._handlers is None:
             raise RuntimeError("DBManager.init()을 먼저 호출해야 합니다.")
@@ -72,12 +78,10 @@ class DBManager:
         if handler is None:
             raise ValueError(f"알 수 없는 task: {task_name}")
 
-        return await handler(**kwargs)
+        return self._loop.run_until_complete(handler(**kwargs))
 
-    async def close(self) -> None:
-        """
-        DB 연결(Controller)을 정리한다. 사용이 끝나면 호출한다.
-        init()이 호출된 적 없으면(=아직 연결이 없으면) 아무 일도 하지 않는다.
-        """
+    def close(self) -> None:
+        """DB 연결을 정리한다 (동기 호출)."""
         if self._controller is not None:
-            await self._controller.close()
+            self._loop.run_until_complete(self._controller.close())
+        self._loop.close()
