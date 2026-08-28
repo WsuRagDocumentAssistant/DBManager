@@ -74,6 +74,7 @@ class DBManager:
             "insert_api_data": api_data_repo.insert,
             "select_all_api_data": api_data_repo.select_many,
             "update_api_data_date": api_data_repo.update,
+            "delete_api_data" : api_data_repo.delete,
             "search_word": word_dict_repo.select_one,
             "list_all_words": word_dict_repo.select_many,
             "insert_word": word_dict_repo.insert,

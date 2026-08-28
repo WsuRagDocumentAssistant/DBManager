@@ -48,18 +48,19 @@ class ApiDataRepository(BaseDatabaseInterface):
         query = "SELECT * FROM insert_api_data($1::text, $2::text, $3::text, $4::text, $5::text, $6::text)"
         return await self._fetch_one(query, title, url, source, key, data, data_type)
 
-    async def update(self, **kwargs) -> bool:
+    async def update(self, **kwargs) -> dict:
         """
         url로 찾아서 data(응답 원문)를 갱신한다. date도 자동으로 현재시각으로 갱신된다.
 
         필수 kwargs: url (str), data (str)
-        반환: 성공하면 True, 해당 url이 없으면 False
+        반환: {"title": ..., "success": True/False}
+              해당 url이 없으면 {"title": None, "success": False}
         """
         url = kwargs["url"]
         data = kwargs["data"]
-        query = "SELECT update_api_data_date($1::text, $2::text) AS success"
+        query = "SELECT * FROM update_api_data_date($1::text, $2::text)"
         result = await self._fetch_one(query, url, data)
-        return result["success"] if result else False
+        return dict(result) if result else {"title": None, "success": False}
 
     async def delete(self, **kwargs) -> bool:
         """

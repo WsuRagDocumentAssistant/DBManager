@@ -180,7 +180,8 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `update_api_data_date`
 - **하는 일**: url로 찾아서 data(응답 원문)를 갱신한다. date도 자동으로 현재시각으로 갱신된다.
 - **필수 인자**: `url (str)`, `data (str)`
-- **반환값**: 성공하면 `True`, 해당 url이 없으면 `False`
+- **반환값**: `{"title": ..., "success": True/False}` — 해당 url이 없으면
+  `{"title": None, "success": False}`
 - **호출 예시**:
   ```python
   result = manager.call("update_api_data_date", url="http://test.com", data="갱신된데이터")
