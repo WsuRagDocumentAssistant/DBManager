@@ -92,6 +92,7 @@ class DBManager:
             "update_session_title": session_repo.update_title,
             "login": user_repo.select_one,
             "create_user_account": user_repo.insert,
+            "update_user_role": user_repo.update_role,
         }
 
     def call(self, task_name: str, **kwargs):

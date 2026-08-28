@@ -33,7 +33,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 15개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 16개 작업이다.
 
 ## 세션 관리
 
@@ -93,6 +93,21 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `name (str)`, `login_id (str)`, `password (str)`
 - **선택 인자**: `role (str, 기본 "user", "admin" 또는 "user"만 허용)`
 - **반환값 예시**: `{"user_id": ..., "name": ..., "login_id": ..., "role": ...}`
+
+### `update_user_role`
+- **하는 일**: 관리자(role='admin')가 다른 사용자의 권한을 변경한다. 호출자가
+  실제로 관리자인지 서버(DB)에서 검증한다.
+- **필수 인자**: `admin_user_id (str)`, `target_user_id (str)`, `new_role (str, 'admin' 또는 'user')`
+- **반환값**: `{"success": True/False, "message": "..."}`
+- **호출 예시**:
+  ```python
+  result = manager.call(
+      "update_user_role",
+      admin_user_id="관리자의 user_id",
+      target_user_id="바꿀 대상의 user_id",
+      new_role="admin",
+  )
+  ```
 
 ## 문서등록 관리
 

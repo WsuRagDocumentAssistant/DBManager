@@ -63,3 +63,18 @@ class UserRepository(BaseDatabaseInterface):
         현재 요구사항에는 삭제 기능이 없다.
         """
         raise NotImplementedError("users는 현재 삭제 기능을 제공하지 않음")
+
+    async def update_role(self, **kwargs) -> dict:
+        """
+        관리자가 다른 사용자의 권한(role)을 변경한다.
+        호출한 사용자가 실제로 admin 권한인지 DB에서 검증한 뒤 처리된다.
+
+        필수 kwargs: admin_user_id (str), target_user_id (str), new_role (str, 'admin' 또는 'user')
+        반환: {"success": True/False, "message": "..."}
+        """
+        admin_user_id = kwargs["admin_user_id"]
+        target_user_id = kwargs["target_user_id"]
+        new_role = kwargs["new_role"]
+        query = "SELECT * FROM update_user_role($1::uuid, $2::uuid, $3::text)"
+        result = await self._fetch_one(query, admin_user_id, target_user_id, new_role)
+        return dict(result) if result else {"success": False, "message": "알 수 없는 오류"}
