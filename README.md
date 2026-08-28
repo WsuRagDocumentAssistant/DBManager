@@ -33,7 +33,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 14개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 15개 작업이다.
 
 ## 세션 관리
 
@@ -201,7 +201,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `search_word`
 - **하는 일**: 단어를 정확히 일치하는 것만 검색한다 (부분일치 안 됨).
 - **필수 인자**: `word (str)`
-- **반환값**: `{"id": ..., "word": ..., "replacement": ...}` 또는 결과 없으면 None
+- **반환값**: `{"word": ..., "replacement": ...}` 또는 결과 없으면 None
 
 ### `list_all_words`
 - **하는 일**: 등록된 단어/대체어 전체 목록을 조회한다.
@@ -211,7 +211,12 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `insert_word`
 - **하는 일**: 새 단어/대체어 쌍을 등록한다.
 - **필수 인자**: `word (str)`, `replacement (str)`
-- **반환값**: 등록된 row (dict)
+- **반환값**: 등록된 row (dict), 키: `word, replacement`
+
+### `update_word`
+- **하는 일**: 기존 단어(word)를 찾아서 그 대체어(replacement)만 수정한다.
+- **필수 인자**: `word (str)`, `new_replacement (str)`
+- **반환값**: 수정된 row (dict) 또는 해당 word가 없으면 None
 
 ## 주의사항
 

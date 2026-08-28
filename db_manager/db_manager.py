@@ -78,6 +78,7 @@ class DBManager:
             "search_word": word_dict_repo.select_one,
             "list_all_words": word_dict_repo.select_many,
             "insert_word": word_dict_repo.insert,
+            "update_word": word_dict_repo.update,
             "register_document": document_repo.insert,
             "get_document": document_repo.select_one,
             "list_documents": document_repo.select_many,
