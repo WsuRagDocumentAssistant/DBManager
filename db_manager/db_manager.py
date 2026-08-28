@@ -14,6 +14,14 @@ import asyncio
 
 from ai_rag_comm import Controller, load_config, setup_logging
 from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
+from .repositories import (
+    DocumentRepository,
+    WorkCategoryOptionRepository,
+    TaskNameOptionRepository,
+    DepartmentOptionRepository,
+    ReportTypeOptionRepository,
+)
+from .repositories import UserRepository
 
 
 class DBManager:
@@ -48,6 +56,12 @@ class DBManager:
         message_repo = MessageRepository(db)
         api_data_repo = ApiDataRepository(db)
         word_dict_repo = WordDictionaryRepository(db)
+        document_repo = DocumentRepository(db)
+        work_category_option_repo = WorkCategoryOptionRepository(db)
+        task_name_option_repo = TaskNameOptionRepository(db)
+        department_option_repo = DepartmentOptionRepository(db)
+        report_type_option_repo = ReportTypeOptionRepository(db)
+        user_repo = UserRepository(db)
 
         self._handlers = {
             "get_or_create_session": session_repo.select_one,
@@ -57,13 +71,25 @@ class DBManager:
             "get_recent_messages": message_repo.select_many,
             "get_session_context": session_repo.get_context,
             "update_current_topic": session_repo.update_topic,
-            "get_api_data": api_data_repo.select_one,
-            "list_api_data": api_data_repo.select_many,
             "insert_api_data": api_data_repo.insert,
-            "delete_api_data": api_data_repo.delete,
+            "select_all_api_data": api_data_repo.select_many,
+            "update_api_data_date": api_data_repo.update,
             "search_word": word_dict_repo.select_one,
             "list_all_words": word_dict_repo.select_many,
             "insert_word": word_dict_repo.insert,
+            "register_document": document_repo.insert,
+            "get_document": document_repo.select_one,
+            "list_documents": document_repo.select_many,
+            "search_documents_by_filename": document_repo.search_by_filename,
+            "update_document": document_repo.update,
+            "delete_document": document_repo.delete,
+            "get_work_category_options": work_category_option_repo.select_many,
+            "get_task_name_options": task_name_option_repo.select_many,
+            "get_department_options": department_option_repo.select_many,
+            "get_report_type_options": report_type_option_repo.select_many,
+            "update_session_title": session_repo.update_title,
+            "login": user_repo.select_one,
+            "create_user_account": user_repo.insert,
         }
 
     def call(self, task_name: str, **kwargs):

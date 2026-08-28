@@ -39,7 +39,7 @@ class SessionRepository(BaseDatabaseInterface):
         """
         user_id = kwargs["user_id"]
         query = """
-            SELECT session_id, user_id, created_at, updated_at, overall_summary
+            SELECT session_id, user_id, title, created_at, updated_at, overall_summary
             FROM sessions
             WHERE user_id = $1::uuid
             ORDER BY updated_at DESC
@@ -119,6 +119,22 @@ class SessionRepository(BaseDatabaseInterface):
         await self._execute("CALL update_current_topic($1::uuid, $2::text)", session_id, topic)
         query = """
             SELECT session_id, user_id, created_at, updated_at, overall_summary, current_topic
+            FROM sessions WHERE session_id = $1::uuid
+        """
+        return await self._fetch_one(query, session_id)
+
+    async def update_title(self, **kwargs) -> Optional[dict]:
+        """
+        세션의 제목(title)을 갱신한다. ChatGPT 대화목록 제목처럼 짧은 제목이다.
+
+        필수 kwargs: session_id (str), title (str)
+        반환: 갱신된 세션 row (dict)
+        """
+        session_id = kwargs["session_id"]
+        title = kwargs["title"]
+        await self._execute("CALL update_session_title($1::uuid, $2::text)", session_id, title)
+        query = """
+            SELECT session_id, user_id, title, created_at, updated_at, overall_summary, current_topic
             FROM sessions WHERE session_id = $1::uuid
         """
         return await self._fetch_one(query, session_id)
