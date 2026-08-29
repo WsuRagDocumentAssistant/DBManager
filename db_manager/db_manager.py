@@ -77,6 +77,8 @@ class DBManager:
             "select_all_api_data": api_data_repo.select_many,
             "update_api_data_date": api_data_repo.update,
             "delete_api_data" : api_data_repo.delete,
+            "save_api_data_vector": api_data_repo.save_vector,
+            "search_api_data_vector": api_data_repo.search_vector,
             "search_word": word_dict_repo.select_one,
             "list_all_words": word_dict_repo.select_many,
             "insert_word": word_dict_repo.insert,

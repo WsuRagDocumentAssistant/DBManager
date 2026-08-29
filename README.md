@@ -309,6 +309,26 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   result = manager.call("delete_api_data", url="http://test.com")
   ```
 
+### `save_api_data_vector`
+- **하는 일**: API 데이터의 임베딩 벡터를 저장/갱신한다 (UPSERT). 해당 url이
+  api_datas에 이미 존재해야 한다.
+- **필수 인자**: `url (str)`, `embedding (list[float])`
+- **반환값**: `{"url": ...}`
+- **호출 예시**:
+  ```python
+  result = manager.call("save_api_data_vector", url="http://...", embedding=[0.1, 0.2, ...])
+  ```
+
+### `search_api_data_vector`
+- **하는 일**: 쿼리 벡터와 의미적으로 유사한 API 데이터를 검색한다.
+- **필수 인자**: `query_vector (list[float])`
+- **선택 인자**: `top_k (int, 기본 5)`
+- **반환값**: `list[dict]`, 키: url, title, source, similarity
+- **호출 예시**:
+  ```python
+  results = manager.call("search_api_data_vector", query_vector=[0.1, 0.2, ...], top_k=3)
+  ```
+
 ## 단어사전 관리
 
 ### `search_word`
