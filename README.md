@@ -33,7 +33,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 16개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 36개 작업이다.
 
 ## 세션 관리
 
@@ -112,15 +112,27 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ## 문서등록 관리
 
 ### `register_document`
-- **하는 일**: 문서를 documents 테이블에 등록하고, 함께 넘어온 분류값(업무구분/수행업무/수행부서/보고서명)을 각각의 옵션 테이블에도 upsert한다 (이미 있으면 무시, 없으면 추가).
-- **필수 인자**: `production_year (int)`, `work_category (str, None 가능)`, `p_task_name (str, None 가능)`, `department (str, None 가능)`, `report_type (str, None 가능)`, `file_path (str)`
-- **선택 인자**: `registered_at (str, 기본 오늘 날짜)`
-- **반환값 예시**: `{"id": ..., "filename": ...}`
+- **하는 일**: 임베딩된 문서(source_path로 식별)에 업무 분류값을 등록한다. 먼저 `save_document_json`으로 색인돼 있어야 한다.
+- **필수 인자**: `source_path (str)`, `production_year (int)`, `work_category (str)`, `task (str)`, `department (str)`, `report_type (str)`
+- **선택 인자**: `registered_at (str, 기본 오늘)`
+- **반환값**: `{"id": ..., "filename": ...}`
+- **호출 예시**:
+```python
+  result = manager.call(
+      "register_document",
+      source_path="/test/a.hwpx",
+      production_year=2026,
+      work_category="테스트",
+      task="테스트",
+      department="테스트",
+      report_type="테스트",
+  )
+```
 
 ### `get_document`
 - **하는 일**: 문서를 id로 단건 조회한다.
 - **필수 인자**: `id (int)`
-- **반환값**: `dict` 또는 결과 없으면 `None`. 키: `id, filename, file_path, production_year, work_category, task_name, department, report_type, registered_at`
+- **반환값**: `dict` 또는 결과 없으면 `None`. 키: `id, filename, source_path, production_year, work_category, task_name, department, report_type, registered_at`
 
 ### `list_documents`
 - **하는 일**: 최근 등록순으로 문서 목록을 페이지네이션해서 조회한다.
@@ -128,9 +140,9 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **반환값**: `list[dict]`, 각 dict 키는 `get_document`와 동일
 
 ### `search_documents_by_filename`
-- **하는 일**: 파일명(파일 경로의 마지막 부분) 기준으로 부분일치 검색한다.
+- **하는 일**: 파일명(filename) 기준으로 부분일치 검색한다.
 - **필수 인자**: `query (str)`
-- **반환값**: `list[dict]`, 키: `id, filename, file_path, registered_at`
+- **반환값**: `list[dict]`, 키: `id, filename, source_path, registered_at`
 
 ### `update_document`
 - **하는 일**: 문서의 분류 필드(생산연도/업무구분/수행업무/수행부서/보고서명)를 수정한다. 존재하지 않는 id로 호출하면 예외가 발생한다.
@@ -142,7 +154,93 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `id (int)`
 - **반환값**: 삭제된 문서의 id (`int`)
 
-## 문서등록_ㄸ문서 옵션 관리
+## RAG 색인/검색
+
+### `index_document`
+- **하는 일**: RAG 파이프라인이 파싱한 문서를 색인한다 (UPSERT — 같은 source_path면 RAG 관련 컬럼만 갱신되고 업무 분류값은 보존된다).
+- **필수 인자**: `document (dict, JSON으로 직렬화 가능한 구조 — source_path/filename/title/creator/... + parents[].children[])`
+- **선택 인자**: `sparse_dim (int, 기본 250002)`
+- **반환값**: 색인된 documents.id (`int`)
+- **호출 예시**:
+  ```python
+  result = manager.call(
+      "index_document",
+      document={
+          "source_path": "/rag/test/a.hwpx",
+          "filename": "a.hwpx",
+          "parents": [
+              {"heading": "1장", "breadcrumb": "1장", "content": "본문 내용",
+               "children": [{"content": "청크 내용"}]}
+          ],
+      },
+  )
+  ```
+
+### `search_documents_vector`
+- **하는 일**: dense(임베딩 벡터) 유사도 검색을 수행한다.
+- **필수 인자**: `query_vector (list[float])`
+- **선택 인자**: `top_k (int, 기본 5)`, `document_id (int)`
+- **반환값**: `list[dict]`
+- **호출 예시**:
+  ```python
+  result = manager.call("search_documents_vector", query_vector=[0.1, 0.2, ...], top_k=5)
+  ```
+
+### `search_documents_lexical`
+- **하는 일**: sparse(어휘) 유사도 검색을 수행한다.
+- **필수 인자**: `query_weights (dict, {"토큰id": 가중치})`
+- **선택 인자**: `sparse_dim (int, 기본 250002)`, `top_k (int, 기본 5)`
+- **반환값**: `list[dict]`
+- **호출 예시**:
+  ```python
+  result = manager.call("search_documents_lexical", query_weights={"3": 0.82, "157": 0.44})
+  ```
+
+### `search_documents_hybrid`
+- **하는 일**: dense+sparse를 RRF(Reciprocal Rank Fusion)로 합쳐서 검색한다.
+- **필수 인자**: `query_vector (list[float])`, `query_weights (dict)`
+- **선택 인자**: `sparse_dim (int, 기본 250002)`, `top_k (int, 기본 5)`, `document_id (int)`, `k (int, 기본 60)`
+- **반환값**: `list[dict]`
+- **호출 예시**:
+  ```python
+  result = manager.call(
+      "search_documents_hybrid",
+      query_vector=[0.1, 0.2, ...],
+      query_weights={"3": 0.82, "157": 0.44},
+  )
+  ```
+
+### `count_documents`
+- **하는 일**: 색인 통계(문서/parent/child/embedded/lexical 개수)를 조회한다.
+- **필수 인자**: 없음
+- **반환값**: `{"documents": ..., "parents": ..., "children": ..., "embedded": ..., "lexical": ...}`
+- **호출 예시**:
+  ```python
+  result = manager.call("count_documents")
+  ```
+
+### `load_vocab`
+- **하는 일**: 축약어 사전 전체를 `{축약어: [확장어, ...]}` 형태로 조회한다.
+- **필수 인자**: 없음
+- **반환값**: `dict`
+- **호출 예시**:
+  ```python
+  result = manager.call("load_vocab")
+  ```
+
+### `save_vocab_pairs`
+- **하는 일**: `{term, expansion}` 쌍 여러 개를 한 번에 등록한다 (upsert).
+- **필수 인자**: `pairs (list[dict], 각 {"term": ..., "expansion": ...})`
+- **반환값**: 새로 추가된 확장어 개수 (`int`)
+- **호출 예시**:
+  ```python
+  result = manager.call(
+      "save_vocab_pairs",
+      pairs=[{"term": "RAG", "expansion": "Retrieval-Augmented Generation"}],
+  )
+  ```
+
+## 문서등록
 
 ### `get_work_category_options`
 - **하는 일**: 업무구분 드롭다운 후보 목록을 조회한다 (엑셀 원본 값으로 미리 시드되어 있고, `register_document` 호출 시 새 값이 자동으로 추가된다).

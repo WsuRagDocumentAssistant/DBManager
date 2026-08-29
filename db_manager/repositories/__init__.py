@@ -9,6 +9,7 @@ from .documents import (
 from .users import UserRepository, CredentialRepository
 from .api_data import ApiDataRepository
 from .word_dictionary import WordDictionaryRepository
+from .rag import VocabRepository
 
 __all__ = [
     "SessionRepository",
@@ -22,4 +23,5 @@ __all__ = [
     "CredentialRepository",
     "ApiDataRepository",
     "WordDictionaryRepository",
+    "VocabRepository",
 ]

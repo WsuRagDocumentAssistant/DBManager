@@ -22,6 +22,7 @@ from .repositories import (
     ReportTypeOptionRepository,
 )
 from .repositories import UserRepository
+from .repositories import VocabRepository
 
 
 class DBManager:
@@ -62,6 +63,7 @@ class DBManager:
         department_option_repo = DepartmentOptionRepository(db)
         report_type_option_repo = ReportTypeOptionRepository(db)
         user_repo = UserRepository(db)
+        vocab_repo = VocabRepository(db)
 
         self._handlers = {
             "get_or_create_session": session_repo.select_one,
@@ -93,6 +95,13 @@ class DBManager:
             "login": user_repo.select_one,
             "create_user_account": user_repo.insert,
             "update_user_role": user_repo.update_role,
+            "index_document": document_repo.index_document,
+            "search_documents_vector": document_repo.search_vector,
+            "search_documents_lexical": document_repo.search_lexical,
+            "search_documents_hybrid": document_repo.search_hybrid,
+            "count_documents": document_repo.count_index_stats,
+            "load_vocab": vocab_repo.select_many,
+            "save_vocab_pairs": vocab_repo.insert,
         }
 
     def call(self, task_name: str, **kwargs):
