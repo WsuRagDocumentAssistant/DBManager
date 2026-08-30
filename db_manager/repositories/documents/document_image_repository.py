@@ -16,6 +16,19 @@ class DocumentImageRepository(BaseDatabaseInterface):
     BaseDatabaseInterface가 이미 BaseRepositoryInterface를 상속하므로 별도로 다시 상속하지 않음.
     """
 
+    async def select_one(self, **kwargs) -> Optional[dict]:
+        """
+        현재 요구사항에는 단건 조회 기능이 없다.
+        """
+        raise NotImplementedError("document_images는 현재 단건 조회 기능을 제공하지 않음")
+
+    async def select_many(self, **kwargs) -> list[dict]:
+        """
+        현재 요구사항에는 (제목 검색이 아닌) 전체/기본 목록 조회 기능이 없다.
+        문서명 기준 검색은 search_by_title을 사용한다.
+        """
+        raise NotImplementedError("document_images는 현재 전체 목록 조회 기능을 제공하지 않음")
+
     async def insert(self, **kwargs) -> Optional[dict]:
         """
         문서에 이미지를 등록한다.
@@ -28,6 +41,18 @@ class DocumentImageRepository(BaseDatabaseInterface):
         image_path = kwargs["image_path"]
         query = "SELECT * FROM create_document_image($1::integer, $2::text, $3::text)"
         return await self._fetch_one(query, document_id, image_name, image_path)
+
+    async def update(self, **kwargs) -> Optional[dict]:
+        """
+        현재 요구사항에는 수정 기능이 없다.
+        """
+        raise NotImplementedError("document_images는 현재 수정 기능을 제공하지 않음")
+
+    async def delete(self, **kwargs) -> bool:
+        """
+        현재 요구사항에는 삭제 기능이 없다.
+        """
+        raise NotImplementedError("document_images는 현재 삭제 기능을 제공하지 않음")
 
     async def search_by_title(self, **kwargs) -> list[dict]:
         """
