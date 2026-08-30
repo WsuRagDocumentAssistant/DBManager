@@ -16,6 +16,7 @@ from ai_rag_comm import Controller, load_config, setup_logging
 from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
 from .repositories import (
     DocumentRepository,
+    DocumentImageRepository,
     WorkCategoryOptionRepository,
     TaskNameOptionRepository,
     DepartmentOptionRepository,
@@ -58,6 +59,7 @@ class DBManager:
         api_data_repo = ApiDataRepository(db)
         word_dict_repo = WordDictionaryRepository(db)
         document_repo = DocumentRepository(db)
+        document_image_repo = DocumentImageRepository(db)
         work_category_option_repo = WorkCategoryOptionRepository(db)
         task_name_option_repo = TaskNameOptionRepository(db)
         department_option_repo = DepartmentOptionRepository(db)
@@ -89,6 +91,8 @@ class DBManager:
             "search_documents_by_filename": document_repo.search_by_filename,
             "update_document": document_repo.update,
             "delete_document": document_repo.delete,
+            "create_document_image": document_image_repo.insert,
+            "search_document_images": document_image_repo.search_by_title,
             "get_work_category_options": work_category_option_repo.select_many,
             "get_task_name_options": task_name_option_repo.select_many,
             "get_department_options": department_option_repo.select_many,

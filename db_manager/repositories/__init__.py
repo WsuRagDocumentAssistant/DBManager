@@ -1,6 +1,7 @@
 from .session import SessionRepository, MessageRepository
 from .documents import (
     DocumentRepository,
+    DocumentImageRepository,
     WorkCategoryOptionRepository,
     TaskNameOptionRepository,
     DepartmentOptionRepository,
@@ -15,6 +16,7 @@ __all__ = [
     "SessionRepository",
     "MessageRepository",
     "DocumentRepository",
+    "DocumentImageRepository",
     "WorkCategoryOptionRepository",
     "TaskNameOptionRepository",
     "DepartmentOptionRepository",
