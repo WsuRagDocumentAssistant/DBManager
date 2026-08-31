@@ -109,6 +109,7 @@ class DBManager:
             "count_documents": document_repo.count_index_stats,
             "load_vocab": vocab_repo.select_many,
             "save_vocab_pairs": vocab_repo.insert,
+            "delete_session": session_repo.delete,
         }
 
     def call(self, task_name: str, **kwargs):
