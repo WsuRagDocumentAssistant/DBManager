@@ -33,7 +33,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 36개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 41개 작업이다.
 
 ## 세션 관리
 
@@ -42,6 +42,17 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `user_id (str)`
 - **선택 인자**: `timeout_minutes (int, 기본 30)`
 - **반환값 예시**: `{"session_id": ...}` 또는 `None`
+
+### `create_new_session`
+- **하는 일**: "새채팅" 버튼 전용. 시간 상관없이 무조건 새 세션을 생성한다.
+  `get_or_create_session`은 최근 30분 안에 활동한 세션이 있으면 그걸 재사용하므로,
+  사용자가 명시적으로 새 대화를 시작하고 싶을 때는 이 함수를 대신 써야 한다.
+- **필수 인자**: `user_id (str)`
+- **반환값**: `{"session_id": ...}`
+- **호출 예시**:
+  ```python
+  result = manager.call("create_new_session", user_id="...")
+  ```
 
 ### `list_sessions`
 - **하는 일**: 특정 사용자의 세션 목록을 최근 활동순으로 반환한다.

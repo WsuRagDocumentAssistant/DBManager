@@ -30,6 +30,18 @@ class SessionRepository(BaseDatabaseInterface):
         query = "SELECT get_or_create_session($1::uuid, $2::integer) AS session_id"
         return await self._fetch_one(query, user_id, timeout_minutes)
 
+    async def create_new(self, **kwargs) -> Optional[dict]:
+        """
+        "새채팅" 전용 — 시간 상관없이 무조건 새 세션을 생성한다.
+        get_or_create_session과 달리 30분 타임아웃 체크를 하지 않는다.
+
+        필수 kwargs: user_id (str)
+        반환: {"session_id": ...}
+        """
+        user_id = kwargs["user_id"]
+        query = "SELECT create_new_session($1::uuid) AS session_id"
+        return await self._fetch_one(query, user_id)
+
     async def select_many(self, **kwargs) -> list[dict]:
         """
         특정 사용자의 세션 목록을 최근 활동순으로 반환한다.

@@ -69,6 +69,7 @@ class DBManager:
 
         self._handlers = {
             "get_or_create_session": session_repo.select_one,
+            "create_new_session": session_repo.create_new,
             "list_sessions": session_repo.select_many,
             "update_overall_summary": session_repo.update,
             "insert_message": message_repo.insert,
