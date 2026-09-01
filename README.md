@@ -33,19 +33,19 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 41개 작업이다.
+`db_manager.py`의 `handlers` 딕셔너리에 등록된 46개 작업이다.
 
 ## 세션 관리
 
 ### `get_or_create_session`
-- **하는 일**: 기존 세션을 이어가거나, 없으면(또는 타임아웃 지났으면) 새로 만든다 (get-or-create).
+- **하는 일**: 기존 세션을 이어가거나, 없으면 새로 만든다 (get-or-create). 타임아웃
+  로직은 제거되어 시간 경과로 새 세션을 만들지 않는다 (그런 용도는 `create_new_session` 사용).
 - **필수 인자**: `user_id (str)`
-- **선택 인자**: `timeout_minutes (int, 기본 30)`
 - **반환값 예시**: `{"session_id": ...}` 또는 `None`
 
 ### `create_new_session`
 - **하는 일**: "새채팅" 버튼 전용. 시간 상관없이 무조건 새 세션을 생성한다.
-  `get_or_create_session`은 최근 30분 안에 활동한 세션이 있으면 그걸 재사용하므로,
+  `get_or_create_session`은 최근 활동한 세션이 있으면 그걸 재사용하므로,
   사용자가 명시적으로 새 대화를 시작하고 싶을 때는 이 함수를 대신 써야 한다.
 - **필수 인자**: `user_id (str)`
 - **반환값**: `{"session_id": ...}`
@@ -120,6 +120,14 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   )
   ```
 
+### `list_users`
+- **하는 일**: 전체 사용자 목록을 이름순으로 조회한다. 비밀번호는 반환하지 않는다.
+- **반환값**: `list[dict]`, 각 dict 키: user_id, name, login_id, role
+- **호출 예시**:
+  ```python
+  users = manager.call("list_users")
+  ```
+
 ## 문서등록 관리
 
 ### `register_document`
@@ -164,6 +172,34 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **하는 일**: 문서를 id로 삭제한다. 존재하지 않는 id로 호출하면 예외가 발생한다.
 - **필수 인자**: `id (int)`
 - **반환값**: 삭제된 문서의 id (`int`)
+
+## 문서 이미지 관리
+
+### `create_document_image`
+- **하는 일**: 문서에 이미지를 등록한다.
+- **필수 인자**: `document_id (int)`, `image_name (str)`, `image_path (str)`
+- **반환값**: `{"id": ..., "document_id": ..., "image_name": ..., "image_path": ...}`
+
+### `get_document_image`
+- **하는 일**: 이미지를 id로 단건 조회한다.
+- **필수 인자**: `id (int)`
+- **반환값**: `dict` 또는 `None`
+
+### `list_document_images`
+- **하는 일**: 특정 문서(document_id)에 속한 이미지 전체를 조회한다.
+- **필수 인자**: `document_id (int)`
+- **반환값**: `list[dict]`
+
+### `update_document_image`
+- **하는 일**: 이미지 설명/메타정보를 수정한다 (이미지 보기 모달의 저장 버튼). 존재하지 않는 id로 호출하면 예외가 발생한다.
+- **필수 인자**: `id (int)`, `image_name (str)`, `image_path (str)`
+- **선택 인자**: `caption (str)`, `major_title (str)`, `mid_title (str)`, `minor_title (str)`, `note (str)`, `ai_summary (str)`, `key_facts (list[str])`, `key_phrases (list[str])`
+- **반환값**: 수정된 행 전체 (`dict`)
+
+### `search_document_images`
+- **하는 일**: 문서명(title) 기준으로 부분일치 검색하여 해당 문서들에 속한 이미지 목록을 조회한다.
+- **필수 인자**: `query (str)`
+- **반환값**: `list[dict]`, 키: id, document_id, image_name, image_path, document_title (document_id, id 순 정렬)
 
 ## RAG 색인/검색
 

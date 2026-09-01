@@ -48,9 +48,12 @@ class UserRepository(BaseDatabaseInterface):
 
     async def select_many(self, **kwargs) -> list[dict]:
         """
-        현재 요구사항에는 사용자 목록 조회 기능이 없다.
+        전체 사용자 목록을 이름순으로 조회한다. 비밀번호는 반환하지 않는다.
+
+        반환: list[dict], 각 dict 키: user_id, name, login_id, role
         """
-        raise NotImplementedError("users는 현재 목록 조회 기능을 제공하지 않음")
+        query = "SELECT * FROM list_users()"
+        return await self._fetch_many(query)
 
     async def update(self, **kwargs) -> Optional[dict]:
         """

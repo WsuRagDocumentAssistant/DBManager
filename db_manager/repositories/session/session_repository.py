@@ -19,16 +19,16 @@ class SessionRepository(BaseDatabaseInterface):
 
     async def select_one(self, **kwargs) -> Optional[dict]:
         """
-        기존 세션을 이어가거나, 없으면(또는 타임아웃 지났으면) 새로 만든다 (get-or-create).
+        기존 세션을 이어가거나, 없으면 새로 만든다 (get-or-create).
+        타임아웃 로직은 DB 함수에서 제거되어, 더 이상 시간 경과로 새 세션을
+        만들지 않는다 (그런 용도는 create_new_session을 사용).
 
         필수 kwargs: user_id (str)
-        선택 kwargs: timeout_minutes (int, 기본 30)
         반환: {"session_id": ...} 또는 None
         """
         user_id = kwargs["user_id"]
-        timeout_minutes = kwargs.get("timeout_minutes", 30)
-        query = "SELECT get_or_create_session($1::uuid, $2::integer) AS session_id"
-        return await self._fetch_one(query, user_id, timeout_minutes)
+        query = "SELECT get_or_create_session($1::uuid) AS session_id"
+        return await self._fetch_one(query, user_id)
 
     async def create_new(self, **kwargs) -> Optional[dict]:
         """

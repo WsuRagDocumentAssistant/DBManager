@@ -2,7 +2,7 @@
 DocumentImageRepository
 
 document_images 테이블을 담당하는 Repository.
-문서에 속한 이미지 등록/문서명 기준 검색을 처리한다.
+문서에 속한 이미지 등록/조회/수정과 문서명 기준 검색을 처리한다.
 """
 
 from typing import Optional
@@ -18,16 +18,27 @@ class DocumentImageRepository(BaseDatabaseInterface):
 
     async def select_one(self, **kwargs) -> Optional[dict]:
         """
-        현재 요구사항에는 단건 조회 기능이 없다.
+        이미지를 id로 단건 조회한다.
+
+        필수 kwargs: id (int)
+        반환: dict 또는 None
         """
-        raise NotImplementedError("document_images는 현재 단건 조회 기능을 제공하지 않음")
+        id_ = kwargs["id"]
+        query = "SELECT * FROM get_document_image($1::bigint)"
+        return await self._fetch_one(query, id_)
 
     async def select_many(self, **kwargs) -> list[dict]:
         """
-        현재 요구사항에는 (제목 검색이 아닌) 전체/기본 목록 조회 기능이 없다.
-        문서명 기준 검색은 search_by_title을 사용한다.
+        특정 문서(document_id)에 속한 이미지 전체를 조회한다.
+        (기존에 제목 부분일치 검색으로 우회하던 방식 대체 — 제목이 겹치면
+        다른 문서의 이미지가 섞이는 버그가 있었음)
+
+        필수 kwargs: document_id (int)
+        반환: list[dict]
         """
-        raise NotImplementedError("document_images는 현재 전체 목록 조회 기능을 제공하지 않음")
+        document_id = kwargs["document_id"]
+        query = "SELECT * FROM list_document_images($1::integer)"
+        return await self._fetch_many(query, document_id)
 
     async def insert(self, **kwargs) -> Optional[dict]:
         """
@@ -44,9 +55,36 @@ class DocumentImageRepository(BaseDatabaseInterface):
 
     async def update(self, **kwargs) -> Optional[dict]:
         """
-        현재 요구사항에는 수정 기능이 없다.
+        이미지 설명/메타정보를 수정한다 (이미지 보기 모달의 저장 버튼).
+        존재하지 않는 id로 호출하면 DB 함수가 예외를 던지며, 그대로 전파한다.
+
+        필수 kwargs: id (int), image_name (str), image_path (str)
+        선택 kwargs: caption (str), major_title (str), mid_title (str),
+                     minor_title (str), note (str), ai_summary (str),
+                     key_facts (list[str]), key_phrases (list[str])
+        반환: 수정된 행 전체 (dict)
         """
-        raise NotImplementedError("document_images는 현재 수정 기능을 제공하지 않음")
+        id_ = kwargs["id"]
+        image_name = kwargs["image_name"]
+        image_path = kwargs["image_path"]
+        caption = kwargs.get("caption")
+        major_title = kwargs.get("major_title")
+        mid_title = kwargs.get("mid_title")
+        minor_title = kwargs.get("minor_title")
+        note = kwargs.get("note")
+        ai_summary = kwargs.get("ai_summary")
+        key_facts = kwargs.get("key_facts")
+        key_phrases = kwargs.get("key_phrases")
+        query = """
+            SELECT * FROM update_document_image(
+                $1::bigint, $2::text, $3::text, $4::text, $5::text,
+                $6::text, $7::text, $8::text, $9::text, $10::text[], $11::text[]
+            )
+        """
+        return await self._fetch_one(
+            query, id_, image_name, image_path, caption, major_title,
+            mid_title, minor_title, note, ai_summary, key_facts, key_phrases
+        )
 
     async def delete(self, **kwargs) -> bool:
         """
