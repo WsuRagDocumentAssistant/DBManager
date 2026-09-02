@@ -6,6 +6,7 @@ BaseRepositoryInterface의 5개 추상 메서드를 messages 테이블 기준으
 세션(sessions) 관련 작업은 SessionRepository가 담당한다.
 """
 
+import json
 from typing import Optional
 
 from ai_rag_comm.interface import BaseDatabaseInterface
@@ -22,13 +23,19 @@ class MessageRepository(BaseDatabaseInterface):
         메시지를 저장하고 순번(turn_index)을 자동 채번한다.
 
         필수 kwargs: session_id (str), user_query (str), ai_response (str)
+        선택 kwargs: sources (list 또는 dict) — RAG 답변 생성에 참고한 출처 정보.
+                     안 넘기면 NULL로 저장됨.
         반환: {"out_message_id": ..., "out_turn_index": ...} 또는 None
         """
         session_id = kwargs["session_id"]
         user_query = kwargs["user_query"]
         ai_response = kwargs["ai_response"]
-        query = "SELECT * FROM insert_message($1::uuid, $2::text, $3::text)"
-        return await self._fetch_one(query, session_id, user_query, ai_response)
+        sources = kwargs.get("sources")
+        query = "SELECT * FROM insert_message($1::uuid, $2::text, $3::text, $4::jsonb)"
+        return await self._fetch_one(
+            query, session_id, user_query, ai_response,
+            json.dumps(sources) if sources is not None else None
+        )
 
     async def select_many(self, **kwargs) -> list[dict]:
         """

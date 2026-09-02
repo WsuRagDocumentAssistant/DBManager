@@ -84,10 +84,11 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `insert_message`
 - **하는 일**: 메시지를 저장하고 순번(`turn_index`)을 자동 채번한다.
 - **필수 인자**: `session_id (str)`, `user_query (str)`, `ai_response (str)`
+- **선택 인자**: `sources (list 또는 dict)` — RAG 답변 생성에 참고한 출처 정보. 안 넘기면 `NULL`로 저장됨.
 - **반환값 예시**: `{"out_message_id": ..., "out_turn_index": ...}` 또는 `None`
 
 ### `get_recent_messages`
-- **하는 일**: 세션 내 최근 N개 대화를, 오래된 순으로 정렬해서 반환한다.
+- **하는 일**: 세션 내 최근 N개 대화를, 오래된 순으로 정렬해서 반환한다. 각 메시지의 `sources`(출처 정보)도 함께 반환된다.
 - **필수 인자**: `session_id (str)`
 - **선택 인자**: `limit_count (int, 기본 5)`
 - **반환값**: `list[dict]`
