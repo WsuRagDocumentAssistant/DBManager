@@ -227,11 +227,15 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `search_documents_vector`
 - **하는 일**: dense(임베딩 벡터) 유사도 검색을 수행한다.
 - **필수 인자**: `query_vector (list[float])`
-- **선택 인자**: `top_k (int, 기본 5)`, `document_id (int)`
+- **선택 인자**: `top_k (int, 기본 5)`, `document_ids (list[int], 특정 문서들로 한정. None이나 빈 리스트면 전체 검색)`
 - **반환값**: `list[dict]`
 - **호출 예시**:
   ```python
   result = manager.call("search_documents_vector", query_vector=[0.1, 0.2, ...], top_k=5)
+  # 특정 문서들로 한정
+  result = manager.call(
+      "search_documents_vector", query_vector=[0.1, 0.2, ...], top_k=5, document_ids=[47, 48]
+  )
   ```
 
 ### `search_documents_lexical`
@@ -247,7 +251,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `search_documents_hybrid`
 - **하는 일**: dense+sparse를 RRF(Reciprocal Rank Fusion)로 합쳐서 검색한다.
 - **필수 인자**: `query_vector (list[float])`, `query_weights (dict)`
-- **선택 인자**: `sparse_dim (int, 기본 250002)`, `top_k (int, 기본 5)`, `document_id (int)`, `k (int, 기본 60)`
+- **선택 인자**: `sparse_dim (int, 기본 250002)`, `top_k (int, 기본 5)`, `document_ids (list[int], 특정 문서들로 한정. None이나 빈 리스트면 전체 검색)`, `k (int, 기본 60)`
 - **반환값**: `list[dict]`
 - **호출 예시**:
   ```python
@@ -255,6 +259,13 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
       "search_documents_hybrid",
       query_vector=[0.1, 0.2, ...],
       query_weights={"3": 0.82, "157": 0.44},
+  )
+  # 특정 문서들로 한정
+  result = manager.call(
+      "search_documents_hybrid",
+      query_vector=[0.1, 0.2, ...],
+      query_weights={"3": 0.82, "157": 0.44},
+      document_ids=[47, 48],
   )
   ```
 

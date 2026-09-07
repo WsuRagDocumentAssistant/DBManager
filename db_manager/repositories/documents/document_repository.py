@@ -154,14 +154,15 @@ class DocumentRepository(BaseDatabaseInterface):
         dense(임베딩 벡터) 유사도 검색.
 
         필수 kwargs: query_vector (list[float])
-        선택 kwargs: top_k (int, 기본 5), document_id (int)
+        선택 kwargs: top_k (int, 기본 5), document_ids (list[int], 특정 문서들로
+                     한정. None이나 빈 리스트면 전체 검색)
         반환: list[dict]
         """
         query_vector = kwargs["query_vector"]
         top_k = kwargs.get("top_k", 5)
-        document_id = kwargs.get("document_id")
-        query = "SELECT * FROM search_documents_vector($1::vector, $2::integer, $3::integer)"
-        return await self._fetch_many(query, _to_vector_literal(query_vector), top_k, document_id)
+        document_ids = kwargs.get("document_ids")
+        query = "SELECT * FROM search_documents_vector($1::vector, $2::integer, $3::integer[])"
+        return await self._fetch_many(query, _to_vector_literal(query_vector), top_k, document_ids)
 
     async def search_lexical(self, **kwargs) -> list[dict]:
         """
@@ -183,22 +184,23 @@ class DocumentRepository(BaseDatabaseInterface):
 
         필수 kwargs: query_vector (list[float]), query_weights (dict)
         선택 kwargs: sparse_dim (int, 기본 250002), top_k (int, 기본 5),
-                     document_id (int), k (int, 기본 60)
+                     document_ids (list[int], 특정 문서들로 한정. None이나
+                     빈 리스트면 전체 검색), k (int, 기본 60)
         반환: list[dict]
         """
         query_vector = kwargs["query_vector"]
         query_weights = kwargs["query_weights"]
         sparse_dim = kwargs.get("sparse_dim", 250002)
         top_k = kwargs.get("top_k", 5)
-        document_id = kwargs.get("document_id")
+        document_ids = kwargs.get("document_ids")
         k = kwargs.get("k", 60)
         query = """
             SELECT * FROM search_documents_hybrid(
-                $1::vector, $2::jsonb, $3::integer, $4::integer, $5::integer, $6::integer
+                $1::vector, $2::jsonb, $3::integer, $4::integer, $5::integer[], $6::integer
             )
         """
         return await self._fetch_many(
-            query, _to_vector_literal(query_vector), json.dumps(query_weights), sparse_dim, top_k, document_id, k
+            query, _to_vector_literal(query_vector), json.dumps(query_weights), sparse_dim, top_k, document_ids, k
         )
 
     async def count_index_stats(self, **kwargs) -> Optional[dict]:
