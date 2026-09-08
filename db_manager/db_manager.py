@@ -97,6 +97,8 @@ class DBManager:
             "get_document_image": document_image_repo.select_one,
             "list_document_images": document_image_repo.select_many,
             "update_document_image": document_image_repo.update,
+            "save_document_image_vector": document_image_repo.save_vector,
+            "search_document_image_vector": document_image_repo.search_vector,
             "get_work_category_options": work_category_option_repo.select_many,
             "get_task_name_options": task_name_option_repo.select_many,
             "get_department_options": department_option_repo.select_many,

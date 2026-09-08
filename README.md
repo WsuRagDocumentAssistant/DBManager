@@ -33,10 +33,6 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 사용 가능한 작업 목록
 
-`db_manager.py`의 `handlers` 딕셔너리에 등록된 46개 작업이다.
-
-## 세션 관리
-
 ### `get_or_create_session`
 - **하는 일**: 기존 세션을 이어가거나, 없으면 새로 만든다 (get-or-create). 타임아웃
   로직은 제거되어 시간 경과로 새 세션을 만들지 않는다 (그런 용도는 `create_new_session` 사용).
@@ -201,6 +197,25 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **하는 일**: 문서명(title) 기준으로 부분일치 검색하여 해당 문서들에 속한 이미지 목록을 조회한다.
 - **필수 인자**: `query (str)`
 - **반환값**: `list[dict]`, 키: id, document_id, image_name, image_path, document_title (document_id, id 순 정렬)
+
+### `save_document_image_vector`
+- **하는 일**: 이미지의 임베딩 벡터를 저장/갱신한다. 재색인 시 기존 벡터를 덮어쓴다.
+- **필수 인자**: `image_id (int)`, `embedding (list[float])`
+- **반환값**: `{"id": ...}`
+- **호출 예시**:
+  ```python
+  result = manager.call("save_document_image_vector", image_id=328, embedding=[0.1, 0.2, ...])
+  ```
+
+### `search_document_image_vector`
+- **하는 일**: 쿼리 벡터와 유사한 이미지를 검색한다. 설명이 없는(embedding NULL) 이미지는 자동 제외된다.
+- **필수 인자**: `query_vector (list[float])`
+- **선택 인자**: `top_k (int, 기본 5)`, `document_ids (list[int], 특정 문서로 한정)`
+- **반환값**: `list[dict]`, 키: image_id, document_id, image_name, image_path, caption, ai_summary, document_title, similarity
+- **호출 예시**:
+  ```python
+  results = manager.call("search_document_image_vector", query_vector=[0.1, ...], top_k=3, document_ids=[47, 48])
+  ```
 
 ## RAG 색인/검색
 

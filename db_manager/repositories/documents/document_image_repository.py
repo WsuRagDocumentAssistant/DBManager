@@ -10,6 +10,15 @@ from typing import Optional
 from ai_rag_comm.interface import BaseDatabaseInterface
 
 
+def _to_vector_literal(query_vector: list[float]) -> str:
+    """
+    asyncpg는 pgvector의 vector 타입에 대한 코덱을 등록하지 않은 상태라, python list를
+    그대로 바인딩하면 DataError가 난다. pgvector의 텍스트 리터럴 형식('[1,2,3]')으로
+    직접 변환해서 넘겨야 한다.
+    """
+    return "[" + ",".join(str(x) for x in query_vector) + "]"
+
+
 class DocumentImageRepository(BaseDatabaseInterface):
     """
     document_images 테이블 전담 Repository.
@@ -103,3 +112,33 @@ class DocumentImageRepository(BaseDatabaseInterface):
         search_query = kwargs["query"]
         query = "SELECT * FROM search_document_images($1::text)"
         return await self._fetch_many(query, search_query)
+
+    async def save_vector(self, **kwargs) -> Optional[dict]:
+        """
+        이미지의 임베딩 벡터를 저장/갱신한다. 재색인 시 기존 벡터를 덮어쓴다.
+        존재하지 않는 image_id면 DB 함수가 예외를 던지며, 그대로 전파한다.
+
+        필수 kwargs: image_id (int), embedding (list[float])
+        반환: {"id": ...}
+        """
+        image_id = kwargs["image_id"]
+        embedding = kwargs["embedding"]
+        query = "SELECT * FROM save_document_image_vector($1::bigint, $2::vector)"
+        return await self._fetch_one(query, image_id, _to_vector_literal(embedding))
+
+    async def search_vector(self, **kwargs) -> list[dict]:
+        """
+        쿼리 벡터와 의미적으로 유사한 이미지를 검색한다. 설명(embedding)이
+        없는 이미지는 자동으로 제외된다.
+
+        필수 kwargs: query_vector (list[float])
+        선택 kwargs: top_k (int, 기본 5), document_ids (list[int], 특정 문서들로
+                     한정. None이나 빈 리스트면 전체 검색)
+        반환: list[dict], 키: image_id, document_id, image_name, image_path,
+              caption, ai_summary, document_title, similarity
+        """
+        query_vector = kwargs["query_vector"]
+        top_k = kwargs.get("top_k", 5)
+        document_ids = kwargs.get("document_ids")
+        query = "SELECT * FROM search_document_image_vector($1::vector, $2::integer, $3::integer[])"
+        return await self._fetch_many(query, _to_vector_literal(query_vector), top_k, document_ids)
