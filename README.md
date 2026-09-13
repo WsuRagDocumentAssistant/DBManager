@@ -56,14 +56,15 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **반환값**: `list[dict]`, 각 dict 키: `session_id, user_id, created_at, updated_at, overall_summary`
 
 ### `update_overall_summary`
-- **하는 일**: 세션 전체 요약(`overall_summary`)을 갱신한다.
+- **하는 일**: 세션 전체 요약(`overall_summary`)과 요약 커서(`summarized_turn`, 요약에 접은 마지막 `turn_index`)를 한 번에 갱신한다.
 - **필수 인자**: `session_id (str)`, `summary (str)`
-- **반환값**: 갱신된 세션 row (dict), 키: `session_id, user_id, created_at, updated_at, overall_summary`
+- **선택 인자**: `summarized_turn (int)` — 안 넘기면 기존 값 유지
+- **반환값**: 갱신된 세션 row (dict), 키: `session_id, user_id, created_at, updated_at, overall_summary, summarized_turn`
 
 ### `get_session_context`
-- **하는 일**: 세션의 전체 요약(`overall_summary`)과 현재 토픽(`current_topic`)을 한 번에 조회한다. LLM 프롬프트 조립 시 "장기 기억"으로 쓰기 위한 조회 전용 작업이다.
+- **하는 일**: 세션의 전체 요약(`overall_summary`), 현재 토픽(`current_topic`), 요약 커서(`summarized_turn`)를 한 번에 조회한다. LLM 프롬프트 조립 시 "장기 기억"으로 쓰기 위한 조회 전용 작업이다.
 - **필수 인자**: `session_id (str)`
-- **반환값 예시**: `{"overall_summary": ..., "current_topic": ...}` 또는 `None`
+- **반환값 예시**: `{"overall_summary": ..., "current_topic": ..., "summarized_turn": 0}` 또는 `None`
 
 ### `update_current_topic`
 - **하는 일**: 지금 이 순간 얘기 중인 주제(`current_topic`)를 갱신한다. `overall_summary`(전체 누적 요약)와는 별개로 짧은 주제 라벨만 덮어쓴다.

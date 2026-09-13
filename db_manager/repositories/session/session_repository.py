@@ -76,16 +76,25 @@ class SessionRepository(BaseDatabaseInterface):
 
     async def update(self, **kwargs) -> Optional[dict]:
         """
-        세션 전체 요약(overall_summary)을 갱신한다.
+        세션 전체 요약(overall_summary)과 요약 커서(summarized_turn)를 한 번에 갱신한다.
+        둘을 따로 저장하면 요약만 저장되고 커서가 안 올라가서 다음 호출이 같은 차례를
+        또 요약하는 문제가 생기므로 같은 프로시저에서 처리한다.
 
         필수 kwargs: session_id (str), summary (str)
-        반환: 갱신된 세션 row (dict), 키: session_id, user_id, created_at, updated_at, overall_summary
+        선택 kwargs: summarized_turn (int) — 요약에 접은 마지막 turn_index.
+                     안 넘기면 DB 프로시저가 기존 값을 유지한다.
+        반환: 갱신된 세션 row (dict), 키: session_id, user_id, created_at, updated_at,
+              overall_summary, summarized_turn
         """
         session_id = kwargs["session_id"]
         summary = kwargs["summary"]
-        await self._execute("CALL update_overall_summary($1::uuid, $2::text)", session_id, summary)
+        summarized_turn = kwargs.get("summarized_turn")
+        await self._execute(
+            "CALL update_overall_summary($1::uuid, $2::text, $3::integer)",
+            session_id, summary, summarized_turn,
+        )
         query = """
-            SELECT session_id, user_id, created_at, updated_at, overall_summary
+            SELECT session_id, user_id, created_at, updated_at, overall_summary, summarized_turn
             FROM sessions WHERE session_id = $1::uuid
         """
         return await self._fetch_one(query, session_id)
@@ -107,11 +116,12 @@ class SessionRepository(BaseDatabaseInterface):
 
     async def get_context(self, **kwargs) -> Optional[dict]:
         """
-        세션의 전체 요약(overall_summary)과 현재 토픽(current_topic)을 한 번에 조회한다.
+        세션의 전체 요약(overall_summary), 현재 토픽(current_topic), 요약 커서
+        (summarized_turn)를 한 번에 조회한다.
         LLM 프롬프트 조립 시 "장기 기억"으로 쓰기 위한 조회 전용 메서드다.
 
         필수 kwargs: session_id (str)
-        반환: {"overall_summary": ..., "current_topic": ...} 또는 None
+        반환: {"overall_summary": ..., "current_topic": ..., "summarized_turn": ...} 또는 None
         """
         session_id = kwargs["session_id"]
         query = "SELECT * FROM get_session_context($1::uuid)"
