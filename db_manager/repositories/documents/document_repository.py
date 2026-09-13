@@ -121,6 +121,44 @@ class DocumentRepository(BaseDatabaseInterface):
         row = await self._fetch_one(query, id_)
         return row["id"] if row else None
 
+    async def create_pending(self, **kwargs) -> Optional[int]:
+        """
+        색인 전에 'processing' 상태의 문서 행을 먼저 만든다. 색인이 끝나면
+        index_document가 JSON의 document_id로 이 행을 채우고 'ready'로 바꾼다.
+        같은 source_path가 이미 있으면 그 행을 다시 'processing'으로 되돌린다.
+
+        필수 kwargs: filename (str), source_path (str), size (int), mime_type (str)
+        선택 kwargs: production_year (int), work_category (str), task (str),
+                     department (str), report_type (str)
+        반환: 문서 id (int)
+
+        주의: 이 kwarg는 "task_name"이 아니라 "task"다 (register_document와 같은 이유).
+        """
+        query = """
+            SELECT create_pending_document(
+                $1::text, $2::text, $3::bigint, $4::text,
+                $5::integer, $6::text, $7::text, $8::text, $9::text
+            ) AS id
+        """
+        row = await self._fetch_one(
+            query,
+            kwargs["filename"], kwargs["source_path"], kwargs["size"], kwargs["mime_type"],
+            kwargs.get("production_year"), kwargs.get("work_category"), kwargs.get("task"),
+            kwargs.get("department"), kwargs.get("report_type"),
+        )
+        return row["id"] if row else None
+
+    async def set_status(self, **kwargs) -> Optional[int]:
+        """
+        문서 상태를 바꾼다. 허용값: 'processing' | 'ready' | 'error'.
+
+        필수 kwargs: id (int), status (str)
+        반환: 바뀐 문서의 id (int), 해당 id가 없으면 None
+        """
+        query = "SELECT set_document_status($1::integer, $2::text) AS id"
+        row = await self._fetch_one(query, kwargs["id"], kwargs["status"])
+        return row["id"] if row else None
+
     async def search_by_filename(self, **kwargs) -> list[dict]:
         """
         파일명(filename) 기준으로 부분일치 검색한다.

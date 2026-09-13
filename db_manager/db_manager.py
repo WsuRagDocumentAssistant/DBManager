@@ -109,6 +109,8 @@ class DBManager:
             "update_user_role": user_repo.update_role,
             "list_users": user_repo.select_many,
             "index_document": document_repo.index_document,
+            "create_pending_document": document_repo.create_pending,
+            "set_document_status": document_repo.set_status,
             "search_documents_vector": document_repo.search_vector,
             "search_documents_lexical": document_repo.search_lexical,
             "search_documents_hybrid": document_repo.search_hybrid,

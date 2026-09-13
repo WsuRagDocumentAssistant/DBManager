@@ -149,7 +149,8 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `get_document`
 - **하는 일**: 문서를 id로 단건 조회한다.
 - **필수 인자**: `id (int)`
-- **반환값**: `dict` 또는 결과 없으면 `None`. 키: `id, filename, source_path, production_year, work_category, task_name, department, report_type, registered_at`
+- **반환값**: `dict` 또는 결과 없으면 `None`. 키: `id, filename, source_path, production_year, work_category, task_name, department, report_type, registered_at, size, mime_type, chunks, status`
+  (`status`는 `'processing' | 'ready' | 'error'`)
 
 ### `list_documents`
 - **하는 일**: 최근 등록순으로 문서 목록을 페이지네이션해서 조회한다.
@@ -159,7 +160,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `search_documents_by_filename`
 - **하는 일**: 파일명(filename) 기준으로 부분일치 검색한다.
 - **필수 인자**: `query (str)`
-- **반환값**: `list[dict]`, 키: `id, filename, source_path, registered_at`
+- **반환값**: `list[dict]`, 키: `id, filename, source_path, registered_at, size, mime_type, chunks, status`
 
 ### `update_document`
 - **하는 일**: 문서의 분류 필드(생산연도/업무구분/수행업무/수행부서/보고서명)를 수정한다. 존재하지 않는 id로 호출하면 예외가 발생한다.
@@ -220,9 +221,25 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## RAG 색인/검색
 
+### `create_pending_document`
+- **하는 일**: 색인(파싱·임베딩)을 시작하기 전에 `status='processing'`인 문서 행을 먼저 만든다.
+  색인이 끝나면 `index_document`의 `document["document_id"]`로 이 행을 채우고 `'ready'`가 된다.
+  같은 `source_path`가 이미 있으면 그 행을 다시 `'processing'`으로 되돌린다(재색인).
+- **필수 인자**: `filename (str)`, `source_path (str)`, `size (int)`, `mime_type (str)`
+- **선택 인자**: `production_year (int)`, `work_category (str)`, `task (str)`, `department (str)`, `report_type (str)`
+  (`task`는 `register_document`와 같은 이유로 `task_name`이 아니다)
+- **반환값**: 문서 id (`int`)
+
+### `set_document_status`
+- **하는 일**: 문서 상태를 바꾼다. 색인 실패 시 `'error'`, 서버 재시작 시 `'processing'`으로 남은 행을 `'error'`로 정리하는 용도.
+- **필수 인자**: `id (int)`, `status (str, 'processing' | 'ready' | 'error')`
+- **반환값**: 바뀐 문서의 id (`int`), 해당 id가 없으면 `None`
+
 ### `index_document`
-- **하는 일**: RAG 파이프라인이 파싱한 문서를 색인한다 (UPSERT — 같은 source_path면 RAG 관련 컬럼만 갱신되고 업무 분류값은 보존된다).
-- **필수 인자**: `document (dict, JSON으로 직렬화 가능한 구조 — source_path/filename/title/creator/... + parents[].children[])`
+- **하는 일**: RAG 파이프라인이 파싱한 문서를 색인한다. `document`에 `document_id`가 있으면
+  `create_pending_document`로 만든 그 행을 채우고 `status='ready'`로 바꾼다. 없으면 기존처럼
+  `source_path`로 UPSERT 한다. 어느 쪽이든 업무 분류값은 보존된다.
+- **필수 인자**: `document (dict, JSON으로 직렬화 가능한 구조 — source_path/filename/title/creator/... + parents[].children[], 선택으로 document_id)`
 - **선택 인자**: `sparse_dim (int, 기본 250002)`
 - **반환값**: 색인된 documents.id (`int`)
 - **호출 예시**:
