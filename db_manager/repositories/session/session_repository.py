@@ -94,8 +94,8 @@ class SessionRepository(BaseDatabaseInterface):
         """
         세션을 삭제한다.
 
-        주의: messages.session_id FK에 ON DELETE CASCADE가 설정되어 있지 않음.
-              세션에 딸린 메시지가 남아있으면 FK 제약 위반으로 실패한다.
+        messages.session_id FK에 ON DELETE CASCADE가 걸려 있어서, 세션을 지우면
+        딸린 메시지도 같이 삭제된다.
 
         필수 kwargs: session_id (str)
         반환: 실제로 삭제된 행이 있으면 True

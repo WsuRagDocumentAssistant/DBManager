@@ -26,6 +26,8 @@ class MessageRepository(BaseDatabaseInterface):
         선택 kwargs: sources (list 또는 dict) — RAG 답변 생성에 참고한 출처 정보.
                      안 넘기면 NULL로 저장됨.
                      provider (str) — 답변을 생성한 LLM 제공자. 안 넘기면 NULL로 저장됨.
+                     images (list) — 답변에 실린 그림 목록(파일이 아니라 경로/메타정보).
+                     서버 응답의 images를 그대로 넘기면 된다. 안 넘기면 NULL로 저장됨.
         반환: {"out_message_id": ..., "out_turn_index": ...} 또는 None
         """
         session_id = kwargs["session_id"]
@@ -33,11 +35,13 @@ class MessageRepository(BaseDatabaseInterface):
         ai_response = kwargs["ai_response"]
         sources = kwargs.get("sources")
         provider = kwargs.get("provider")
-        query = "SELECT * FROM insert_message($1::uuid, $2::text, $3::text, $4::jsonb, $5::text)"
+        images = kwargs.get("images")
+        query = "SELECT * FROM insert_message($1::uuid, $2::text, $3::text, $4::jsonb, $5::text, $6::jsonb)"
         return await self._fetch_one(
             query, session_id, user_query, ai_response,
             json.dumps(sources) if sources is not None else None,
-            provider
+            provider,
+            json.dumps(images) if images is not None else None,
         )
 
     async def select_many(self, **kwargs) -> list[dict]:
