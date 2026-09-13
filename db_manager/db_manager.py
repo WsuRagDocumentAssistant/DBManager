@@ -79,6 +79,7 @@ class DBManager:
             "insert_api_data": api_data_repo.insert,
             "select_all_api_data": api_data_repo.select_many,
             "update_api_data_date": api_data_repo.update,
+            "update_api_data_meta": api_data_repo.update_meta,
             "delete_api_data" : api_data_repo.delete,
             "save_api_data_vector": api_data_repo.save_vector,
             "search_api_data_vector": api_data_repo.search_vector,

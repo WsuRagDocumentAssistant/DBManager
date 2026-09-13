@@ -362,7 +362,8 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `insert_api_data`
 - **하는 일**: 새 공공데이터를 등록한다.
 - **필수 인자**: `title (str)`, `url (str)`, `source (str)`, `key (str)`, `data (str)`, `data_type (str)`
-- **반환값 예시**: `{"title": ..., "url": ..., "source": ..., "key": ..., "data": ..., "data_type": ..., "date": ...}`
+- **선택 인자**: `refresh_interval_minutes (int)` — 갱신 주기(분). 안 넘기면 `NULL`.
+- **반환값 예시**: `{"title": ..., "url": ..., "source": ..., "key": ..., "data": ..., "data_type": ..., "date": ..., "refresh_interval_minutes": ...}`
 - **호출 예시**:
   ```python
   result = manager.call(
@@ -379,10 +380,21 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 ### `select_all_api_data`
 - **하는 일**: 전체 공공데이터 목록을 최신순으로 반환한다.
 - **필수 인자**: 없음
-- **반환값**: `list[dict]`, 각 dict 키: `title, url, source, key, data, data_type, date`
+- **반환값**: `list[dict]`, 각 dict 키: `title, url, source, key, data, data_type, date, refresh_interval_minutes`
 - **호출 예시**:
   ```python
   result = manager.call("select_all_api_data")
+  ```
+
+### `update_api_data_meta`
+- **하는 일**: url로 찾아서 메타정보(title, source, key, 갱신 주기)를 수정한다. `data`와 `date`는 건드리지 않는다.
+  클라이언트의 "id 있으면 수정, 없으면 신규" 중 수정 쪽에 해당한다.
+- **필수 인자**: `url (str)`
+- **선택 인자**: `title (str)`, `source (str)`, `key (str)`, `refresh_interval_minutes (int)` — 안 넘긴 항목은 기존 값 유지
+- **반환값**: 수정된 행 전체 (`dict`), 해당 url이 없으면 `None`
+- **호출 예시**:
+  ```python
+  result = manager.call("update_api_data_meta", url="http://test.com", title="새 제목", refresh_interval_minutes=60)
   ```
 
 ### `update_api_data_date`

@@ -34,7 +34,8 @@ class ApiDataRepository(BaseDatabaseInterface):
         """
         전체 공공데이터 목록을 최신순으로 반환한다.
 
-        반환: list[dict], 각 dict 키: title, url, source, key, data, data_type, date
+        반환: list[dict], 각 dict 키: title, url, source, key, data, data_type, date,
+              refresh_interval_minutes
         """
         query = "SELECT * FROM select_all_api_data()"
         return await self._fetch_many(query)
@@ -45,8 +46,9 @@ class ApiDataRepository(BaseDatabaseInterface):
 
         필수 kwargs: title (str), url (str), source (str), key (str),
                      data (str), data_type (str)
+        선택 kwargs: refresh_interval_minutes (int) — 갱신 주기(분). 안 넘기면 NULL.
         반환: {"title":..., "url":..., "source":..., "key":..., "data":...,
-               "data_type":..., "date":...}
+               "data_type":..., "date":..., "refresh_interval_minutes":...}
         """
         title = kwargs["title"]
         url = kwargs["url"]
@@ -54,8 +56,27 @@ class ApiDataRepository(BaseDatabaseInterface):
         key = kwargs["key"]
         data = kwargs["data"]
         data_type = kwargs["data_type"]
-        query = "SELECT * FROM insert_api_data($1::text, $2::text, $3::text, $4::text, $5::text, $6::text)"
-        return await self._fetch_one(query, title, url, source, key, data, data_type)
+        refresh_interval_minutes = kwargs.get("refresh_interval_minutes")
+        query = "SELECT * FROM insert_api_data($1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::integer)"
+        return await self._fetch_one(query, title, url, source, key, data, data_type, refresh_interval_minutes)
+
+    async def update_meta(self, **kwargs) -> Optional[dict]:
+        """
+        url로 찾아서 메타정보(title, source, key, 갱신 주기)를 수정한다.
+        data와 date는 건드리지 않는다 (그건 update_api_data_date 담당).
+
+        필수 kwargs: url (str)
+        선택 kwargs: title (str), source (str), key (str), refresh_interval_minutes (int)
+                     — 안 넘긴 항목은 NULL로 저장되는 것이 아니라 DB 함수가 기존 값을 유지한다.
+        반환: 수정된 행 전체 (dict), 해당 url이 없으면 None
+        """
+        url = kwargs["url"]
+        title = kwargs.get("title")
+        source = kwargs.get("source")
+        key = kwargs.get("key")
+        refresh_interval_minutes = kwargs.get("refresh_interval_minutes")
+        query = "SELECT * FROM update_api_data($1::text, $2::text, $3::text, $4::text, $5::integer)"
+        return await self._fetch_one(query, url, title, source, key, refresh_interval_minutes)
 
     async def update(self, **kwargs) -> dict:
         """
