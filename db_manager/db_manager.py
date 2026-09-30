@@ -24,6 +24,7 @@ from .repositories import (
 )
 from .repositories import UserRepository
 from .repositories import VocabRepository
+from .repositories import FeatureRequestRepository
 
 
 class DBManager:
@@ -66,6 +67,7 @@ class DBManager:
         report_type_option_repo = ReportTypeOptionRepository(db)
         user_repo = UserRepository(db)
         vocab_repo = VocabRepository(db)
+        feature_request_repo = FeatureRequestRepository(db)
 
         self._handlers = {
             "get_or_create_session": session_repo.select_one,
@@ -119,6 +121,12 @@ class DBManager:
             "load_vocab": vocab_repo.select_many,
             "save_vocab_pairs": vocab_repo.insert,
             "delete_session": session_repo.delete,
+            "list_feature_requests": feature_request_repo.select_many,
+            "get_feature_request": feature_request_repo.select_one,
+            "insert_feature_request": feature_request_repo.insert,
+            "update_feature_request": feature_request_repo.update,
+            "delete_feature_request": feature_request_repo.delete,
+            "answer_feature_request": feature_request_repo.update_answer,
         }
 
     def call(self, task_name: str, **kwargs):
