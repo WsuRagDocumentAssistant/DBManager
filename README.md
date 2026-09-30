@@ -459,6 +459,53 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `word (str)`, `new_replacement (str)`
 - **반환값**: 수정된 row (dict) 또는 해당 word가 없으면 None
 
+## 기능 개선 요청 게시판
+
+테이블과 DB 함수는 `sql/feature_requests.sql`에 있다. DB에 먼저 적용해야 아래 작업이 동작한다.
+반환 행의 키는 모두 같다: `id, title, content, is_secret, author_id, author_name, created_at, status, answer, answered_at`
+(`status`는 `'received' | 'in_progress' | 'done' | 'rejected'`, `author_name`은 users에서 붙인다)
+
+### `list_feature_requests`
+- **하는 일**: 전체 요청 글을 최신순으로 조회한다. 비밀글도 그대로 반환한다 (가리는 건 호출하는 쪽 몫).
+- **필수 인자**: 없음
+- **반환값**: `list[dict]`
+
+### `get_feature_request`
+- **하는 일**: 요청 글 하나를 id로 조회한다.
+- **필수 인자**: `id (int)`
+- **반환값**: `dict` 또는 결과 없으면 `None`
+
+### `insert_feature_request`
+- **하는 일**: 새 요청 글을 등록한다. `status`는 `'received'`로 시작한다.
+- **필수 인자**: `author_id (str)`, `title (str)`, `content (str)`, `is_secret (bool)`
+- **반환값**: 등록된 행 (`dict`)
+
+### `update_feature_request`
+- **하는 일**: 제목/내용/비밀글 여부를 수정한다. **작성자 본인만** 수정할 수 있고, `status`와 `answer`는 건드리지 않는다.
+- **필수 인자**: `id (int)`, `user_id (str)`, `title (str)`, `content (str)`, `is_secret (bool)`
+- **반환값**: 수정된 행 (`dict`), 글이 없거나 작성자가 아니면 `None`
+
+### `delete_feature_request`
+- **하는 일**: 요청 글을 삭제한다. **작성자 본인이나 관리자**만 삭제할 수 있다.
+- **필수 인자**: `id (int)`, `user_id (str)`
+- **반환값**: 삭제됐으면 `True`, 글이 없거나 권한이 없으면 `False`
+
+### `answer_feature_request`
+- **하는 일**: **관리자**가 처리 상태를 바꾸고 답변을 남긴다. `answer`가 빈 문자열이면 상태만 바꾸고
+  기존 답변과 `answered_at`은 그대로 둔다. `answer`가 있으면 `answered_at`이 현재 시각으로 채워진다.
+- **필수 인자**: `id (int)`, `admin_user_id (str)`, `status (str)`, `answer (str)`
+- **반환값**: 갱신된 행 (`dict`), 글이 없거나 호출자가 관리자가 아니면 `None`
+- **호출 예시**:
+  ```python
+  result = manager.call(
+      "answer_feature_request",
+      id=12,
+      admin_user_id="관리자의 user_id",
+      status="in_progress",
+      answer="다음 배포에 반영 예정입니다.",
+  )
+  ```
+
 ## 주의사항
 
 - `overall_summary`, `current_topic`을 실제로 언제 갱신할지는 이 모듈이 정하지 않는다 (호출하는 쪽에서 판단해서 `update_overall_summary`/`update_current_topic`을 부르면 됨).
