@@ -11,6 +11,7 @@ DB 매니저. 내부적으로는 비동기(async) Repository 메서드들을 쓰
 """
 
 import asyncio
+import sys
 
 from ai_rag_comm import Controller, load_config, setup_logging
 from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
@@ -25,6 +26,11 @@ from .repositories import (
 from .repositories import UserRepository
 from .repositories import VocabRepository
 from .repositories import FeatureRequestRepository
+from .repositories import SchoolUserRepository
+
+
+async def _no_school_db(**kwargs):
+    raise RuntimeError("학교 DB에 연결되어 있지 않습니다 (.env 의 SCHOOL_SYNC_ENABLED / SCHOOL_ORACLE_* 확인)")
 
 
 class DBManager:
@@ -41,7 +47,9 @@ class DBManager:
     def __init__(self):
         self._controller = None
         self._handlers = None
-        self._loop = asyncio.new_event_loop()  # 인스턴스 생성 시 딱 한 번만 만듦
+        # 인스턴스 생성 시 딱 한 번만 만듦. Windows 기본(Proactor) 루프에서는 학교 Oracle
+        # 드라이버(python-oracledb async)가 접속 중 멈춰서 Selector 루프를 쓴다 (asyncpg도 동작함).
+        self._loop = asyncio.SelectorEventLoop() if sys.platform == "win32" else asyncio.new_event_loop()
 
     def init(self) -> None:
         """DB 연결을 준비하고 handlers를 구성한다 (동기 호출)."""
@@ -53,7 +61,11 @@ class DBManager:
 
         self._controller = Controller(config=config)
         await self._controller.init()
-        db = self._controller.get_services()["db"]
+        services = self._controller.get_services()
+        db = services["db"]
+        # 학교 DB는 SCHOOL_SYNC_ENABLED=false 거나 접속에 실패하면 None 이다. 그때는 학교 DB
+        # 작업만 이유를 밝히며 실패하고, 나머지 작업은 그대로 쓴다.
+        school_user_repo = SchoolUserRepository(services["school_db"]) if services["school_db"] else None
 
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
@@ -127,6 +139,8 @@ class DBManager:
             "update_feature_request": feature_request_repo.update,
             "delete_feature_request": feature_request_repo.delete,
             "answer_feature_request": feature_request_repo.update_answer,
+            "search_school_users": school_user_repo.select_many if school_user_repo else _no_school_db,
+            "get_school_users": school_user_repo.select_by_ids if school_user_repo else _no_school_db,
         }
 
     def call(self, task_name: str, **kwargs):

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "DB 매니저 입니다."
 requires-python = ">=3.11"
 dependencies = [
-    "ai_rag_comm @ git+https://github.com/WsuRagDocumentAssistant/ServerCommunication.git",
+    "ai_rag_comm[oracle] @ git+https://github.com/WsuRagDocumentAssistant/ServerCommunication.git",
     "session_data @ git+https://github.com/WsuRagDocumentAssistant/SessionData.git",
     "api-data @ git+https://github.com/WsuRagDocumentAssistant/ApiData.git"
 ]

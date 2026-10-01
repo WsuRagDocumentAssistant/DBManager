@@ -506,6 +506,29 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   )
   ```
 
+## 학교 DB (Oracle 뷰, 조회 전용)
+
+학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`를 읽는다. 접속 정보는 `.env`의 `SCHOOL_SYNC_ENABLED` /
+`SCHOOL_ORACLE_*`(ServerCommunication README 참고). 연결이 꺼져 있거나 실패하면 아래 작업만
+`RuntimeError("학교 DB에 연결되어 있지 않습니다 ...")`를 내고, 나머지 작업은 그대로 동작한다.
+비밀번호 컬럼(`PWD`)은 조회하지 않는다.
+
+반환하는 dict 키: `user_id`(학번/교번), `name`, `department`(소속), `college`, `status`(학생/교원/직원), `email`
+
+### `search_school_users`
+- **하는 일**: 학번/교번·이름·소속에 keyword가 들어간 사용자를 이름순으로 찾는다.
+- **필수 인자**: `keyword (str)` / **선택 인자**: `limit (int, 기본 50)`
+- **반환값**: `list[dict]`
+- **호출 예시**:
+  ```python
+  users = manager.call("search_school_users", keyword="홍길동")
+  ```
+
+### `get_school_users`
+- **하는 일**: 학번/교번 목록에 해당하는 사용자를 한 번에 조회한다 (없는 번호는 빠짐).
+- **필수 인자**: `user_ids (list[str])`
+- **반환값**: `list[dict]`
+
 ## 주의사항
 
 - `overall_summary`, `current_topic`을 실제로 언제 갱신할지는 이 모듈이 정하지 않는다 (호출하는 쪽에서 판단해서 `update_overall_summary`/`update_current_topic`을 부르면 됨).
