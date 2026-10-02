@@ -13,6 +13,7 @@ from .word_dictionary import WordDictionaryRepository
 from .rag import VocabRepository
 from .feature_request import FeatureRequestRepository
 from .school import SchoolUserRepository, SchoolViewRepository
+from .notification import NotificationRepository
 
 __all__ = [
     "SessionRepository",
@@ -32,4 +33,5 @@ __all__ = [
     "FeatureRequestRepository",
     "SchoolUserRepository",
     "SchoolViewRepository",
+    "NotificationRepository",
 ]

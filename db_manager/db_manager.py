@@ -27,6 +27,7 @@ from .repositories import UserRepository, PermissionRepository
 from .repositories import VocabRepository
 from .repositories import FeatureRequestRepository
 from .repositories import SchoolUserRepository, SchoolViewRepository
+from .repositories import NotificationRepository
 
 
 async def _no_school_db(**kwargs):
@@ -87,6 +88,7 @@ class DBManager:
         report_type_option_repo = ReportTypeOptionRepository(db)
         user_repo = UserRepository(db)
         permission_repo = PermissionRepository(db)
+        notification_repo = NotificationRepository(db)
         vocab_repo = VocabRepository(db)
         feature_request_repo = FeatureRequestRepository(db)
 
@@ -153,6 +155,10 @@ class DBManager:
             "search_school_users": school_user_repo.select_many,
             "get_school_users": school_user_repo.select_by_ids,
             "school_users_status": school_user_repo.status,
+            "insert_notification": notification_repo.insert,
+            "list_notifications": notification_repo.select_many,
+            "mark_notifications_read": notification_repo.update,
+            "prune_notifications": notification_repo.delete,
             "sync_school_users": (_school_sync(school_view_repo, school_user_repo)
                                   if school_view_repo else _no_school_db),
         }

@@ -561,6 +561,30 @@ PostgreSQL `school_users` 테이블(사본)에 맞춘다. 조회 작업(`search_
 - **필수 인자**: `user_ids (list[str])`
 - **반환값**: `list[dict]`
 
+## 알림
+
+상단 종 아이콘 알림. `sql/notifications.sql`을 PostgreSQL에 먼저 적용해야 한다.
+행 키: `id`, `user_id`, `message`, `type`(success/error/info), `link`, `created_at`, `read_at`(안 읽었으면 None)
+
+### `insert_notification`
+- **필수 인자**: `user_id (str)`, `message (str)` / **선택 인자**: `type (str, 기본 info)`, `link (str)`
+- **반환값**: 만든 행 (`dict`)
+
+### `list_notifications`
+- **하는 일**: 내 알림 최신순.
+- **필수 인자**: `user_id (str)` / **선택 인자**: `limit (int, 기본 50)`
+- **반환값**: `list[dict]`
+
+### `mark_notifications_read`
+- **하는 일**: 읽음 처리. `ids`를 안 주면 내 알림 전부. 남의 알림은 바꾸지 않는다.
+- **필수 인자**: `user_id (str)` / **선택 인자**: `ids (list[int])`
+- **반환값**: 바꾼 개수 (`int`)
+
+### `prune_notifications`
+- **하는 일**: 사용자마다 최신 `keep`개만 남기고 지운다.
+- **선택 인자**: `keep (int, 기본 200)`
+- **반환값**: 지운 개수 (`int`)
+
 ## 주의사항
 
 - `overall_summary`, `current_topic`을 실제로 언제 갱신할지는 이 모듈이 정하지 않는다 (호출하는 쪽에서 판단해서 `update_overall_summary`/`update_current_topic`을 부르면 됨).
