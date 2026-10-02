@@ -11,6 +11,7 @@ DB 매니저. 내부적으로는 비동기(async) Repository 메서드들을 쓰
 """
 
 import asyncio
+import os
 import sys
 
 from ai_rag_comm import Controller, OracleDatabaseService, load_config, setup_logging
@@ -59,7 +60,11 @@ class _SchoolSync:
     async def _connect(self) -> OracleDatabaseService:
         c = self._config
         if not c.enabled:
-            raise RuntimeError("학교 DB 동기화가 꺼져 있습니다 (SCHOOL_SYNC_ENABLED 가 true 가 아님)")
+            raw = os.environ.get("SCHOOL_SYNC_ENABLED")
+            if raw is None:
+                raise RuntimeError("학교 DB 동기화가 꺼져 있습니다 — 컨테이너에 SCHOOL_SYNC_ENABLED 환경변수가 없습니다 "
+                                   "(deployment 가 rag-app-secret 을 envFrom/secretKeyRef 로 불러오는지 확인)")
+            raise RuntimeError(f"학교 DB 동기화가 꺼져 있습니다 — SCHOOL_SYNC_ENABLED 값이 {raw!r} 입니다 (true 로 설정)")
         missing = [name for name, value in (("SCHOOL_ORACLE_HOST", c.host),
                                             ("SCHOOL_ORACLE_SERVICE_NAME", c.service_name),
                                             ("SCHOOL_ORACLE_USER", c.user),
