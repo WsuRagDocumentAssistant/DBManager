@@ -7,7 +7,7 @@ from .documents import (
     DepartmentOptionRepository,
     ReportTypeOptionRepository,
 )
-from .users import UserRepository, CredentialRepository
+from .users import UserRepository, CredentialRepository, PermissionRepository
 from .api_data import ApiDataRepository
 from .word_dictionary import WordDictionaryRepository
 from .rag import VocabRepository
@@ -25,6 +25,7 @@ __all__ = [
     "ReportTypeOptionRepository",
     "UserRepository",
     "CredentialRepository",
+    "PermissionRepository",
     "ApiDataRepository",
     "WordDictionaryRepository",
     "VocabRepository",

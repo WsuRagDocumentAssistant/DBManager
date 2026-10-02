@@ -57,6 +57,14 @@ LANGUAGE sql STABLE AS $$
 $$;
 
 
+-- 사본 상태: 행 수와 마지막 동기화 시각. 관리자 화면이 "동기화 전" 과 "검색 결과 없음" 을 구분한다
+CREATE OR REPLACE FUNCTION school_users_status()
+RETURNS TABLE (count bigint, synced_at timestamptz)
+LANGUAGE sql STABLE AS $$
+    SELECT count(*), max(synced_at) FROM school_users;
+$$;
+
+
 -- 학번/교번 또는 이메일(대소문자 무시) 목록에 해당하는 사용자
 CREATE OR REPLACE FUNCTION get_school_users(p_ids text[])
 RETURNS SETOF school_users

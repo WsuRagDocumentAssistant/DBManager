@@ -49,6 +49,13 @@ class SchoolUserRepository(BaseDatabaseInterface):
             raise ValueError("학교 DB에서 받은 사용자가 없어 사본을 그대로 둡니다")
         return await self._fetch_val("SELECT sync_school_users($1::jsonb)", json.dumps(rows, ensure_ascii=False))
 
+    async def status(self, **kwargs) -> dict:
+        """
+        사본 상태. 반환: {"count": 행 수, "synced_at": 마지막 동기화 시각(없으면 None)}
+        """
+        row = await self._fetch_one("SELECT * FROM school_users_status()")
+        return {"count": row["count"], "synced_at": row["synced_at"]}
+
     async def select_one(self, **kwargs) -> Optional[dict]:
         raise NotImplementedError("school_users는 select_many / select_by_ids로 조회한다")
 

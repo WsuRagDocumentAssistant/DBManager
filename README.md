@@ -506,6 +506,25 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   )
   ```
 
+## 계정 권한 (역할과 별개)
+
+역할(admin/user)과 별개로 계정마다 켜고 끄는 권한. `sql/user_permissions.sql`을 PostgreSQL에 먼저 적용해야 한다.
+관리자는 모든 권한을 가진 것으로 보고(화면·서버가 판단), 테이블에는 일반 사용자에게 준 권한만 저장한다.
+
+| 권한 | 뜻 |
+|---|---|
+| `document_input` | 문서 정보 입력 — 문서 등록(비정형) 화면 |
+
+### `list_user_permissions`
+- **하는 일**: 권한 목록. `user_id`를 주면 그 사람 것만.
+- **선택 인자**: `user_id (str)`
+- **반환값**: `list[dict]`, 키: `user_id`, `permission`
+
+### `set_user_permission`
+- **하는 일**: **관리자**가 권한을 주거나 회수한다 (호출자가 admin인지 DB에서 검증).
+- **필수 인자**: `admin_user_id (str)`, `target_user_id (str)`, `permission (str)`, `enabled (bool)`
+- **반환값**: `{"success": True/False, "message": "..."}`
+
 ## 학교 사용자 (Oracle 뷰 → PostgreSQL 사본)
 
 학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`를 `sync_school_users`가 주기적으로 통째로 읽어
@@ -518,6 +537,10 @@ PostgreSQL `school_users` 테이블(사본)에 맞춘다. 조회 작업(`search_
 - 비밀번호 컬럼(`PWD`)은 읽지도 복사하지도 않는다.
 
 행 키: `user_id`(학번/교번), `name`, `department`(소속), `college`, `status`(학생/교원/직원), `email`, `synced_at`
+
+### `school_users_status`
+- **하는 일**: 사본 상태. 관리자 화면이 "동기화 전"과 "검색 결과 없음"을 구분하는 데 쓴다.
+- **반환값**: `{"count": 행 수, "synced_at": 마지막 동기화 시각 또는 None}`
 
 ### `sync_school_users`
 - **하는 일**: 학교 뷰 전체로 사본을 맞춘다 (새 행 추가·갱신, 뷰에서 사라진 행 삭제, 한 트랜잭션).

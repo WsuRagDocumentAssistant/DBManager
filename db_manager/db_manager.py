@@ -23,7 +23,7 @@ from .repositories import (
     DepartmentOptionRepository,
     ReportTypeOptionRepository,
 )
-from .repositories import UserRepository
+from .repositories import UserRepository, PermissionRepository
 from .repositories import VocabRepository
 from .repositories import FeatureRequestRepository
 from .repositories import SchoolUserRepository, SchoolViewRepository
@@ -86,6 +86,7 @@ class DBManager:
         department_option_repo = DepartmentOptionRepository(db)
         report_type_option_repo = ReportTypeOptionRepository(db)
         user_repo = UserRepository(db)
+        permission_repo = PermissionRepository(db)
         vocab_repo = VocabRepository(db)
         feature_request_repo = FeatureRequestRepository(db)
 
@@ -131,6 +132,8 @@ class DBManager:
             "create_user_account": user_repo.insert,
             "update_user_role": user_repo.update_role,
             "list_users": user_repo.select_many,
+            "list_user_permissions": permission_repo.select_many,
+            "set_user_permission": permission_repo.update,
             "index_document": document_repo.index_document,
             "create_pending_document": document_repo.create_pending,
             "set_document_status": document_repo.set_status,
@@ -149,6 +152,7 @@ class DBManager:
             "answer_feature_request": feature_request_repo.update_answer,
             "search_school_users": school_user_repo.select_many,
             "get_school_users": school_user_repo.select_by_ids,
+            "school_users_status": school_user_repo.status,
             "sync_school_users": (_school_sync(school_view_repo, school_user_repo)
                                   if school_view_repo else _no_school_db),
         }
