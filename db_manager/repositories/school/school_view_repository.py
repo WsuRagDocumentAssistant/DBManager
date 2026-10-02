@@ -15,6 +15,9 @@ from ai_rag_comm.interface import BaseOracleDatabaseInterface
 
 VIEW = "AIKEY_USER_V"
 
+# 가져오지 않는 구분(STTS_DIV_NM). 뷰의 구분은 학생 / 교원 / 직원 이다.
+EXCLUDED_STATUS = "학생"
+
 # 뷰 컬럼 -> 사본 컬럼
 COLUMNS = {
     "USER_ID": "user_id",         # 학번/교번
@@ -30,11 +33,16 @@ class SchoolViewRepository(BaseOracleDatabaseInterface):
 
     async def select_many(self, **kwargs) -> list[dict]:
         """
-        뷰 전체를 읽는다.
+        뷰에서 교직원(학생 제외)을 읽는다.
+
+        학생은 RAG 시스템 사용자가 아니라서 가져오지 않는다 — 학생 개인정보를 사본으로 둘 이유도 없다.
+        구분이 비어 있는 행은 학생인지 알 수 없어 남긴다.
 
         반환: list[dict], 키: user_id, name, department, college, status, email
         """
-        rows = await self._fetch_many(f"SELECT {', '.join(COLUMNS)} FROM {self._qualify(VIEW)}")
+        query = (f"SELECT {', '.join(COLUMNS)} FROM {self._qualify(VIEW)} "
+                 f"WHERE STTS_DIV_NM IS NULL OR STTS_DIV_NM <> :student")
+        rows = await self._fetch_many(query, {"student": EXCLUDED_STATUS})
         return [{key: row.get(col) for col, key in COLUMNS.items()} for row in rows]
 
     async def select_one(self, **kwargs) -> Optional[dict]:

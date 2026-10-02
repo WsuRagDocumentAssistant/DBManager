@@ -527,8 +527,9 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 
 ## 학교 사용자 (Oracle 뷰 → PostgreSQL 사본)
 
-학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`를 `sync_school_users`가 주기적으로 통째로 읽어
-PostgreSQL `school_users` 테이블(사본)에 맞춘다. 조회 작업(`search_school_users`, `get_school_users`)은
+학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`에서 교직원(구분이 `학생`인 행 제외)을 `sync_school_users`가
+주기적으로 읽어 PostgreSQL `school_users` 테이블(사본)에 맞춘다. 학생은 사본에 두지 않는다 — 예전에 들어간
+학생 행은 다음 동기화 때 지워진다. 조회 작업(`search_school_users`, `get_school_users`)은
 학교 DB가 아니라 이 사본을 읽으므로, 학교 DB가 꺼져 있어도 마지막 동기화 결과로 동작한다.
 
 - 테이블·함수: `sql/school_users.sql`을 PostgreSQL에 먼저 적용해야 한다.
