@@ -13,7 +13,7 @@ DB 매니저. 내부적으로는 비동기(async) Repository 메서드들을 쓰
 import asyncio
 import sys
 
-from ai_rag_comm import Controller, load_config, setup_logging
+from ai_rag_comm import Controller, OracleDatabaseService, load_config, setup_logging
 from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
 from .repositories import (
     DocumentRepository,
@@ -30,15 +30,61 @@ from .repositories import SchoolUserRepository, SchoolViewRepository
 from .repositories import NotificationRepository
 
 
-async def _no_school_db(**kwargs):
-    raise RuntimeError("학교 DB에 연결되어 있지 않습니다 (.env 의 SCHOOL_SYNC_ENABLED / SCHOOL_ORACLE_* 확인)")
+class _SchoolSync:
+    """학교 뷰 전체를 읽어 PostgreSQL 사본에 맞추는 작업. 반영한 행 수를 돌려준다.
 
+    학교 DB 연결이 없으면 부를 때마다 다시 붙어 본다. 기동할 때 학교 DB가 잠깐 안 됐다고
+    서버를 재시작할 때까지 동기화가 멈추면 안 된다. 읽다가 실패하면 연결을 버리고 다음에 새로 붙는다.
 
-def _school_sync(view_repo: SchoolViewRepository, user_repo: SchoolUserRepository):
-    """학교 뷰 전체를 읽어 PostgreSQL 사본에 맞추는 작업. 반영한 행 수를 돌려준다."""
-    async def sync(**kwargs) -> int:
-        return await user_repo.insert(rows=await view_repo.select_many())
-    return sync
+    실패는 이유를 담은 RuntimeError 로 올린다 — 설정이 꺼졌는지, 접속 정보가 빠졌는지,
+    접속이 거절됐는지를 관리자 화면과 로그에서 바로 알 수 있게.
+    """
+
+    def __init__(self, oracle_config, school_db, user_repo: SchoolUserRepository):
+        self._config = oracle_config
+        self._school_db = school_db
+        self._user_repo = user_repo
+
+    async def __call__(self, **kwargs) -> int:
+        if self._school_db is None:
+            self._school_db = await self._connect()
+        try:
+            rows = await SchoolViewRepository(self._school_db).select_many()
+        except Exception as e:
+            await self.close()
+            raise RuntimeError(f"학교 DB 조회 실패: {type(e).__name__}: {e}") from e
+        return await self._user_repo.insert(rows=rows)
+
+    async def _connect(self) -> OracleDatabaseService:
+        c = self._config
+        if not c.enabled:
+            raise RuntimeError("학교 DB 동기화가 꺼져 있습니다 (SCHOOL_SYNC_ENABLED 가 true 가 아님)")
+        missing = [name for name, value in (("SCHOOL_ORACLE_HOST", c.host),
+                                            ("SCHOOL_ORACLE_SERVICE_NAME", c.service_name),
+                                            ("SCHOOL_ORACLE_USER", c.user),
+                                            ("SCHOOL_ORACLE_PASSWORD", c.password)) if not value]
+        if missing:
+            raise RuntimeError(f"학교 DB 접속 정보가 비어 있습니다: {', '.join(missing)}")
+
+        # oracledb 가 없으면 생성자가 RuntimeError(설치 안내)를 그대로 올린다.
+        school_db = OracleDatabaseService(
+            host=c.host, port=c.port, service_name=c.service_name, user=c.user, password=c.password,
+            owner=c.owner or None, min_size=c.pool_min, max_size=c.pool_max,
+        )
+        try:
+            await school_db.init()
+        except Exception as e:
+            raise RuntimeError(f"학교 DB 접속 실패 ({c.host}:{c.port}/{c.service_name}): "
+                               f"{type(e).__name__}: {e}") from e
+        return school_db
+
+    async def close(self) -> None:
+        if self._school_db is not None:
+            try:
+                await self._school_db.close()
+            except Exception:
+                pass
+            self._school_db = None
 
 
 class DBManager:
@@ -55,6 +101,7 @@ class DBManager:
     def __init__(self):
         self._controller = None
         self._handlers = None
+        self._school_sync = None
         # 인스턴스 생성 시 딱 한 번만 만듦. Windows 기본(Proactor) 루프에서는 학교 Oracle
         # 드라이버(python-oracledb async)가 접속 중 멈춰서 Selector 루프를 쓴다 (asyncpg도 동작함).
         self._loop = asyncio.SelectorEventLoop() if sys.platform == "win32" else asyncio.new_event_loop()
@@ -72,9 +119,10 @@ class DBManager:
         services = self._controller.get_services()
         db = services["db"]
         # 학교 DB는 SCHOOL_SYNC_ENABLED=false 거나 접속에 실패하면 None 이다. 그때는 동기화만
-        # 이유를 밝히며 실패하고, 조회는 마지막으로 동기화한 사본(PostgreSQL)으로 계속한다.
+        # 이유를 밝히며 실패하고(다음 동기화 때 다시 붙어 본다), 조회는 마지막으로 동기화한
+        # 사본(PostgreSQL)으로 계속한다.
         school_user_repo = SchoolUserRepository(db)
-        school_view_repo = SchoolViewRepository(services["school_db"]) if services["school_db"] else None
+        self._school_sync = _SchoolSync(config.school_oracle, services["school_db"], school_user_repo)
 
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
@@ -159,8 +207,7 @@ class DBManager:
             "list_notifications": notification_repo.select_many,
             "mark_notifications_read": notification_repo.update,
             "prune_notifications": notification_repo.delete,
-            "sync_school_users": (_school_sync(school_view_repo, school_user_repo)
-                                  if school_view_repo else _no_school_db),
+            "sync_school_users": self._school_sync,
         }
 
     def call(self, task_name: str, **kwargs):
@@ -181,4 +228,7 @@ class DBManager:
         """DB 연결을 정리한다 (동기 호출)."""
         if self._controller is not None:
             self._loop.run_until_complete(self._controller.close())
+        if self._school_sync is not None:
+            # 기동 뒤에 다시 붙은 학교 DB 연결은 컨트롤러가 모른다. 컨트롤러가 이미 닫은 것이면 그냥 넘어간다.
+            self._loop.run_until_complete(self._school_sync.close())
         self._loop.close()
