@@ -6,6 +6,7 @@ from .documents import (
     TaskNameOptionRepository,
     DepartmentOptionRepository,
     ReportTypeOptionRepository,
+    DocumentCategoryRepository,
 )
 from .users import UserRepository, CredentialRepository, PermissionRepository
 from .api_data import ApiDataRepository
@@ -24,6 +25,7 @@ __all__ = [
     "TaskNameOptionRepository",
     "DepartmentOptionRepository",
     "ReportTypeOptionRepository",
+    "DocumentCategoryRepository",
     "UserRepository",
     "CredentialRepository",
     "PermissionRepository",

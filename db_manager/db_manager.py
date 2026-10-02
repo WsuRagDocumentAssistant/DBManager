@@ -22,6 +22,7 @@ from .repositories import (
     TaskNameOptionRepository,
     DepartmentOptionRepository,
     ReportTypeOptionRepository,
+    DocumentCategoryRepository,
 )
 from .repositories import UserRepository, PermissionRepository
 from .repositories import VocabRepository
@@ -134,6 +135,7 @@ class DBManager:
         task_name_option_repo = TaskNameOptionRepository(db)
         department_option_repo = DepartmentOptionRepository(db)
         report_type_option_repo = ReportTypeOptionRepository(db)
+        document_category_repo = DocumentCategoryRepository(db)
         user_repo = UserRepository(db)
         permission_repo = PermissionRepository(db)
         notification_repo = NotificationRepository(db)
@@ -177,6 +179,9 @@ class DBManager:
             "get_task_name_options": task_name_option_repo.select_many,
             "get_department_options": department_option_repo.select_many,
             "get_report_type_options": report_type_option_repo.select_many,
+            "list_document_categories": document_category_repo.select_many,
+            "save_document_category": document_category_repo.insert,
+            "delete_document_category": document_category_repo.delete,
             "update_session_title": session_repo.update_title,
             "login": user_repo.select_one,
             "create_user_account": user_repo.insert,

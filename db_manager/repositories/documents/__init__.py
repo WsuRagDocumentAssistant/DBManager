@@ -4,6 +4,7 @@ from .work_category_option_repository import WorkCategoryOptionRepository
 from .task_name_option_repository import TaskNameOptionRepository
 from .department_option_repository import DepartmentOptionRepository
 from .report_type_option_repository import ReportTypeOptionRepository
+from .document_category_repository import DocumentCategoryRepository
 
 __all__ = [
     "DocumentRepository",
@@ -12,4 +13,5 @@ __all__ = [
     "TaskNameOptionRepository",
     "DepartmentOptionRepository",
     "ReportTypeOptionRepository",
+    "DocumentCategoryRepository",
 ]

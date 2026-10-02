@@ -358,6 +358,32 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: 없음
 - **반환값**: `list[str]`
 
+## 문서 카테고리 (설정 관리 > 문서 카테고리 관리)
+
+문서 등록(비정형) 화면의 입력 카테고리. `sql/document_categories.sql`을 PostgreSQL에 먼저 적용해야 한다
+(지금까지 화면 코드에 고정돼 있던 값이 초기값으로 들어간다). 위의 `get_*_options`(문서 등록 때 자동으로
+쌓이는 값)와는 별개로, 관리자가 정한 선택지다.
+
+| kind | 뜻 | parent | pair |
+|---|---|---|---|
+| `work_category` | 업무구분 | `''` | - |
+| `task` | 수행업무 | 업무구분 | 짝 수행부서 (고르면 자동으로 채워짐) |
+| `department` | 수행부서 | 업무구분 | - |
+| `report_type` | 보고서명 | `''` | - |
+
+### `list_document_categories`
+- **반환값**: `list[dict]`, 키: `id, kind, parent, value, pair, sort_order, created_at`
+
+### `save_document_category`
+- **하는 일**: **관리자**가 카테고리를 추가한다. 같은 kind·parent·value가 있으면 pair만 바꾼다.
+- **필수 인자**: `admin_user_id (str)`, `kind (str)`, `value (str)` / **선택 인자**: `parent (str)`, `pair (str)`
+- **반환값**: 저장된 행 (`dict`), 관리자가 아니면 `None`
+
+### `delete_document_category`
+- **하는 일**: **관리자**가 카테고리를 지운다. 업무구분을 지우면 그 아래 수행업무·수행부서도 같이 지운다.
+- **필수 인자**: `admin_user_id (str)`, `id (int)`
+- **반환값**: 지웠으면 `True`
+
 ## 공공데이터 관리
 
 ### `insert_api_data`
