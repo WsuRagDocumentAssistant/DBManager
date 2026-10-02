@@ -1,92 +1,59 @@
 """
 SchoolUserRepository
 
-학교 Oracle DB의 사용자 뷰(WS_VIEW.AIKEY_USER_V)를 읽는 Repository. 조회만 한다.
+school_users 테이블(학교 사용자 뷰의 PostgreSQL 사본, sql/school_users.sql)을 담당하는 Repository.
 관리자 화면이 계정의 소속을 채우고(USER_LIST), 학교 구성원을 찾는(SCHOOL_USER_SEARCH) 데 쓴다.
-
-- 비밀번호 컬럼(PWD)은 절대 조회하지 않는다. 그래서 SELECT * 대신 쓸 컬럼만 적는다.
-- 뷰 컬럼명(대문자)을 화면에서 쓰는 이름으로 바꿔서 돌려준다.
+학교 DB가 꺼져 있어도 마지막으로 동기화한 사본으로 동작한다.
 """
 
+import json
 from typing import Optional
 
-from ai_rag_comm.interface import BaseOracleDatabaseInterface
-
-VIEW = "AIKEY_USER_V"
-
-# 뷰 컬럼 -> 돌려줄 키
-COLUMNS = {
-    "USER_ID": "user_id",         # 학번/교번
-    "NM": "name",
-    "USER_DEPT_NM": "department",  # 소속
-    "POSI_COLG_NM": "college",
-    "STTS_DIV_NM": "status",      # 학생/교원/직원
-    "EMAIL": "email",
-}
-
-# Oracle IN 목록 한도
-_IN_LIMIT = 1000
+from ai_rag_comm.interface import BaseDatabaseInterface
 
 
-def _row(raw: dict) -> dict:
-    return {key: raw.get(col) for col, key in COLUMNS.items()}
-
-
-class SchoolUserRepository(BaseOracleDatabaseInterface):
-
-    @property
-    def _select(self) -> str:
-        return f"SELECT {', '.join(COLUMNS)} FROM {self._qualify(VIEW)}"
-
-    async def select_one(self, **kwargs) -> Optional[dict]:
-        """
-        학번/교번 하나로 조회한다.
-
-        필수 kwargs: user_id (str)
-        반환: dict 또는 None
-        """
-        row = await self._fetch_one(f"{self._select} WHERE USER_ID = :1", kwargs["user_id"])
-        return _row(row) if row else None
+class SchoolUserRepository(BaseDatabaseInterface):
 
     async def select_many(self, **kwargs) -> list[dict]:
         """
-        학번/교번·이름·소속에 keyword가 들어간 사용자를 찾는다.
+        학번/교번·이름·소속에 keyword가 들어간 사용자를 이름순으로 찾는다.
 
         필수 kwargs: keyword (str)
         선택 kwargs: limit (int, 기본 50)
-        반환: list[dict] (이름순)
+        반환: list[dict]
         """
-        query = (
-            f"{self._select} "
-            "WHERE USER_ID LIKE :kw OR NM LIKE :kw OR USER_DEPT_NM LIKE :kw "
-            "ORDER BY NM FETCH FIRST :lim ROWS ONLY"
-        )
-        rows = await self._fetch_many(query, {"kw": f"%{kwargs['keyword']}%", "lim": kwargs.get("limit", 50)})
-        return [_row(r) for r in rows]
+        query = "SELECT * FROM search_school_users($1::text, $2::int)"
+        return await self._fetch_many(query, kwargs["keyword"], kwargs.get("limit", 50))
 
     async def select_by_ids(self, **kwargs) -> list[dict]:
         """
-        학번/교번 목록에 해당하는 사용자를 한 번에 조회한다 (없는 번호는 빠진다).
-        계정 login_id 가 이메일인 예전 계정도 있어서 EMAIL 로도 맞춘다(대소문자 무시).
+        학번/교번 또는 이메일 목록에 해당하는 사용자를 한 번에 조회한다 (없는 번호는 빠진다).
+        계정 login_id 가 이메일인 예전 계정도 있어서 이메일로도 맞춘다(대소문자 무시).
 
-        필수 kwargs: user_ids (list[str]) — 학번/교번 또는 이메일
+        필수 kwargs: user_ids (list[str])
         반환: list[dict]
         """
-        ids = list(dict.fromkeys(kwargs["user_ids"]))
-        found = []
-        for start in range(0, len(ids), _IN_LIMIT):
-            binds = {f"k{i}": value for i, value in enumerate(ids[start:start + _IN_LIMIT])}
-            marks = ", ".join(f":{name}" for name in binds)
-            lowered = ", ".join(f"LOWER(:{name})" for name in binds)
-            query = f"{self._select} WHERE USER_ID IN ({marks}) OR LOWER(EMAIL) IN ({lowered})"
-            found += await self._fetch_many(query, binds)
-        return [_row(r) for r in found]
+        query = "SELECT * FROM get_school_users($1::text[])"
+        return await self._fetch_many(query, list(kwargs["user_ids"]))
 
-    async def insert(self, **kwargs) -> Optional[dict]:
-        raise NotImplementedError("학교 DB 뷰는 조회만 한다")
+    async def insert(self, **kwargs) -> int:
+        """
+        뷰 전체로 사본을 맞춘다 (새 행 추가·갱신, 뷰에서 사라진 행 삭제).
+
+        필수 kwargs: rows (list[dict]) — SchoolViewRepository.select_many 결과
+        반환: 반영한 행 수
+        """
+        rows = kwargs["rows"]
+        # 빈 결과로 맞추면 사본이 통째로 지워진다. 뷰가 비어 오는 건 장애일 가능성이 커서 막는다.
+        if not rows:
+            raise ValueError("학교 DB에서 받은 사용자가 없어 사본을 그대로 둡니다")
+        return await self._fetch_val("SELECT sync_school_users($1::jsonb)", json.dumps(rows, ensure_ascii=False))
+
+    async def select_one(self, **kwargs) -> Optional[dict]:
+        raise NotImplementedError("school_users는 select_many / select_by_ids로 조회한다")
 
     async def update(self, **kwargs) -> Optional[dict]:
-        raise NotImplementedError("학교 DB 뷰는 조회만 한다")
+        raise NotImplementedError("school_users는 insert(동기화)로만 바꾼다")
 
     async def delete(self, **kwargs) -> bool:
-        raise NotImplementedError("학교 DB 뷰는 조회만 한다")
+        raise NotImplementedError("school_users는 insert(동기화)로만 바꾼다")

@@ -12,7 +12,7 @@ from .api_data import ApiDataRepository
 from .word_dictionary import WordDictionaryRepository
 from .rag import VocabRepository
 from .feature_request import FeatureRequestRepository
-from .school import SchoolUserRepository
+from .school import SchoolUserRepository, SchoolViewRepository
 
 __all__ = [
     "SessionRepository",
@@ -30,4 +30,5 @@ __all__ = [
     "VocabRepository",
     "FeatureRequestRepository",
     "SchoolUserRepository",
+    "SchoolViewRepository",
 ]

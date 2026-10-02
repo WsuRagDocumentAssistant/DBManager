@@ -26,11 +26,18 @@ from .repositories import (
 from .repositories import UserRepository
 from .repositories import VocabRepository
 from .repositories import FeatureRequestRepository
-from .repositories import SchoolUserRepository
+from .repositories import SchoolUserRepository, SchoolViewRepository
 
 
 async def _no_school_db(**kwargs):
     raise RuntimeError("학교 DB에 연결되어 있지 않습니다 (.env 의 SCHOOL_SYNC_ENABLED / SCHOOL_ORACLE_* 확인)")
+
+
+def _school_sync(view_repo: SchoolViewRepository, user_repo: SchoolUserRepository):
+    """학교 뷰 전체를 읽어 PostgreSQL 사본에 맞추는 작업. 반영한 행 수를 돌려준다."""
+    async def sync(**kwargs) -> int:
+        return await user_repo.insert(rows=await view_repo.select_many())
+    return sync
 
 
 class DBManager:
@@ -63,9 +70,10 @@ class DBManager:
         await self._controller.init()
         services = self._controller.get_services()
         db = services["db"]
-        # 학교 DB는 SCHOOL_SYNC_ENABLED=false 거나 접속에 실패하면 None 이다. 그때는 학교 DB
-        # 작업만 이유를 밝히며 실패하고, 나머지 작업은 그대로 쓴다.
-        school_user_repo = SchoolUserRepository(services["school_db"]) if services["school_db"] else None
+        # 학교 DB는 SCHOOL_SYNC_ENABLED=false 거나 접속에 실패하면 None 이다. 그때는 동기화만
+        # 이유를 밝히며 실패하고, 조회는 마지막으로 동기화한 사본(PostgreSQL)으로 계속한다.
+        school_user_repo = SchoolUserRepository(db)
+        school_view_repo = SchoolViewRepository(services["school_db"]) if services["school_db"] else None
 
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
@@ -139,8 +147,10 @@ class DBManager:
             "update_feature_request": feature_request_repo.update,
             "delete_feature_request": feature_request_repo.delete,
             "answer_feature_request": feature_request_repo.update_answer,
-            "search_school_users": school_user_repo.select_many if school_user_repo else _no_school_db,
-            "get_school_users": school_user_repo.select_by_ids if school_user_repo else _no_school_db,
+            "search_school_users": school_user_repo.select_many,
+            "get_school_users": school_user_repo.select_by_ids,
+            "sync_school_users": (_school_sync(school_view_repo, school_user_repo)
+                                  if school_view_repo else _no_school_db),
         }
 
     def call(self, task_name: str, **kwargs):

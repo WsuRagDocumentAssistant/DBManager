@@ -506,14 +506,23 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   )
   ```
 
-## 학교 DB (Oracle 뷰, 조회 전용)
+## 학교 사용자 (Oracle 뷰 → PostgreSQL 사본)
 
-학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`를 읽는다. 접속 정보는 `.env`의 `SCHOOL_SYNC_ENABLED` /
-`SCHOOL_ORACLE_*`(ServerCommunication README 참고). 연결이 꺼져 있거나 실패하면 아래 작업만
-`RuntimeError("학교 DB에 연결되어 있지 않습니다 ...")`를 내고, 나머지 작업은 그대로 동작한다.
-비밀번호 컬럼(`PWD`)은 조회하지 않는다.
+학교 Oracle DB의 사용자 뷰 `WS_VIEW.AIKEY_USER_V`를 `sync_school_users`가 주기적으로 통째로 읽어
+PostgreSQL `school_users` 테이블(사본)에 맞춘다. 조회 작업(`search_school_users`, `get_school_users`)은
+학교 DB가 아니라 이 사본을 읽으므로, 학교 DB가 꺼져 있어도 마지막 동기화 결과로 동작한다.
 
-반환하는 dict 키: `user_id`(학번/교번), `name`, `department`(소속), `college`, `status`(학생/교원/직원), `email`
+- 테이블·함수: `sql/school_users.sql`을 PostgreSQL에 먼저 적용해야 한다.
+- 접속 정보는 `.env`의 `SCHOOL_SYNC_ENABLED` / `SCHOOL_ORACLE_*`(ServerCommunication README 참고). 연결이 꺼져
+  있거나 실패하면 `sync_school_users`만 `RuntimeError("학교 DB에 연결되어 있지 않습니다 ...")`를 낸다.
+- 비밀번호 컬럼(`PWD`)은 읽지도 복사하지도 않는다.
+
+행 키: `user_id`(학번/교번), `name`, `department`(소속), `college`, `status`(학생/교원/직원), `email`, `synced_at`
+
+### `sync_school_users`
+- **하는 일**: 학교 뷰 전체로 사본을 맞춘다 (새 행 추가·갱신, 뷰에서 사라진 행 삭제, 한 트랜잭션).
+  뷰가 비어 오면 사본을 지우지 않고 `ValueError`를 낸다.
+- **반환값**: 반영한 행 수 (`int`)
 
 ### `search_school_users`
 - **하는 일**: 학번/교번·이름·소속에 keyword가 들어간 사용자를 이름순으로 찾는다.
@@ -525,7 +534,7 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   ```
 
 ### `get_school_users`
-- **하는 일**: 학번/교번 목록에 해당하는 사용자를 한 번에 조회한다 (없는 번호는 빠짐).
+- **하는 일**: 학번/교번 또는 이메일 목록에 해당하는 사용자를 한 번에 조회한다 (없는 번호는 빠짐).
 - **필수 인자**: `user_ids (list[str])`
 - **반환값**: `list[dict]`
 
