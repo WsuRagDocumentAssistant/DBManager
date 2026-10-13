@@ -57,6 +57,17 @@ class _SchoolSync:
             raise RuntimeError(f"학교 DB 조회 실패: {type(e).__name__}: {e}") from e
         return await self._user_repo.insert(rows=rows)
 
+    async def login(self, **kwargs):
+        """학번/교번 + 비밀번호를 학교 DB 로 검증한다(SchoolViewRepository.verify_login).
+        동기화와 같은 연결을 쓰고, 실패 처리도 같다 — 연결을 버리고 이유를 담아 올린다."""
+        if self._school_db is None:
+            self._school_db = await self._connect()
+        try:
+            return await SchoolViewRepository(self._school_db).verify_login(**kwargs)
+        except Exception as e:
+            await self.close()
+            raise RuntimeError(f"학교 DB 로그인 확인 실패: {type(e).__name__}: {e}") from e
+
     async def _connect(self) -> OracleDatabaseService:
         c = self._config
         if not c.enabled:
@@ -218,6 +229,7 @@ class DBManager:
             "mark_notifications_read": notification_repo.update,
             "prune_notifications": notification_repo.delete,
             "sync_school_users": self._school_sync,
+            "school_login": self._school_sync.login,
         }
 
     def call(self, task_name: str, **kwargs):

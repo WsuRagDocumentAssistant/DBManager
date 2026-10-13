@@ -574,6 +574,14 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   뷰가 비어 오면 사본을 지우지 않고 `ValueError`를 낸다.
 - **반환값**: 반영한 행 수 (`int`)
 
+### `school_login`
+- **하는 일**: 학번/교번과 비밀번호를 학교 DB로 검증한다. 사본이 아니라 학교 뷰를 바로 본다.
+  비교는 학교 DB 안에서 한다 — `PWD = CSYW_ENCODESHA256_SF(입력 비밀번호)`. PWD 값은 가져오지 않는다.
+  학생(구분 `학생`)은 동기화와 같이 뺀다.
+- **필수 인자**: `user_id (str)`, `password (str)`
+- **반환값**: 맞으면 `{"user_id", "name", "department", "college", "status", "email"}`, 틀리면 `None`
+- 학교 DB가 꺼져 있거나 접속·조회에 실패하면 이유를 담은 `RuntimeError`를 낸다.
+
 ### `search_school_users`
 - **하는 일**: 학번/교번·이름·소속에 keyword가 들어간 사용자를 이름순으로 찾는다.
 - **필수 인자**: `keyword (str)` / **선택 인자**: `limit (int, 기본 50)`
