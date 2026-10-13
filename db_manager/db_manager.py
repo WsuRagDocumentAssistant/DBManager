@@ -15,7 +15,7 @@ import os
 import sys
 
 from ai_rag_comm import Controller, OracleDatabaseService, load_config, setup_logging
-from .repositories import ApiDataRepository, MessageRepository, SessionRepository, WordDictionaryRepository
+from .repositories import ApiDataRepository, ApiDataMetaRepository, MessageRepository, SessionRepository, WordDictionaryRepository
 from .repositories import (
     DocumentRepository,
     DocumentImageRepository,
@@ -24,6 +24,7 @@ from .repositories import (
     DepartmentOptionRepository,
     ReportTypeOptionRepository,
     DocumentCategoryRepository,
+    ExternalDocumentRepository,
 )
 from .repositories import UserRepository, PermissionRepository
 from .repositories import VocabRepository
@@ -144,6 +145,7 @@ class DBManager:
         session_repo = SessionRepository(db)
         message_repo = MessageRepository(db)
         api_data_repo = ApiDataRepository(db)
+        api_data_meta_repo = ApiDataMetaRepository(db)
         word_dict_repo = WordDictionaryRepository(db)
         document_repo = DocumentRepository(db)
         document_image_repo = DocumentImageRepository(db)
@@ -152,6 +154,7 @@ class DBManager:
         department_option_repo = DepartmentOptionRepository(db)
         report_type_option_repo = ReportTypeOptionRepository(db)
         document_category_repo = DocumentCategoryRepository(db)
+        external_document_repo = ExternalDocumentRepository(db)
         user_repo = UserRepository(db)
         permission_repo = PermissionRepository(db)
         notification_repo = NotificationRepository(db)
@@ -174,6 +177,8 @@ class DBManager:
             "delete_api_data" : api_data_repo.delete,
             "save_api_data_vector": api_data_repo.save_vector,
             "search_api_data_vector": api_data_repo.search_vector,
+            "save_api_data_meta": api_data_meta_repo.insert,
+            "list_api_data_meta": api_data_meta_repo.select_many,
             "search_word": word_dict_repo.select_one,
             "list_all_words": word_dict_repo.select_many,
             "insert_word": word_dict_repo.insert,
@@ -198,6 +203,8 @@ class DBManager:
             "list_document_categories": document_category_repo.select_many,
             "save_document_category": document_category_repo.insert,
             "delete_document_category": document_category_repo.delete,
+            "set_external_document": external_document_repo.update,
+            "list_external_documents": external_document_repo.select_many,
             "update_session_title": session_repo.update_title,
             "login": user_repo.select_one,
             "create_user_account": user_repo.insert,

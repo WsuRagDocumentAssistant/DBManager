@@ -5,6 +5,7 @@ from .task_name_option_repository import TaskNameOptionRepository
 from .department_option_repository import DepartmentOptionRepository
 from .report_type_option_repository import ReportTypeOptionRepository
 from .document_category_repository import DocumentCategoryRepository
+from .external_document_repository import ExternalDocumentRepository
 
 __all__ = [
     "DocumentRepository",
@@ -14,4 +15,5 @@ __all__ = [
     "DepartmentOptionRepository",
     "ReportTypeOptionRepository",
     "DocumentCategoryRepository",
+    "ExternalDocumentRepository",
 ]

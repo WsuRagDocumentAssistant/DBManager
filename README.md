@@ -384,6 +384,21 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
 - **필수 인자**: `admin_user_id (str)`, `id (int)`
 - **반환값**: 지웠으면 `True`
 
+## 외부 문서 (외부 문서 등록 화면)
+
+문서 등록 화면은 내부 문서 등록(메타데이터 입력)과 외부 문서 등록(메타데이터 없음) 둘이다. 색인·검색은 같은
+documents 를 쓰고, `external_documents` 표에 id 가 있으면 외부 문서다. `sql/external_documents.sql`을 먼저 적용해야 한다.
+문서 행이 지워지면 표시도 같이 지워진다.
+
+### `set_external_document`
+- **하는 일**: 외부 문서로 표시하거나(`external=True`) 표시를 뗀다(`False` — 같은 파일을 내부 문서로 다시 올린 경우).
+- **필수 인자**: `document_id (int)`, `external (bool)`
+- **반환값**: `True`
+
+### `list_external_documents`
+- **하는 일**: 외부 문서 id 목록.
+- **반환값**: `list[int]`
+
 ## 공공데이터 관리
 
 ### `insert_api_data`
@@ -462,6 +477,16 @@ manager.close()    # 다 쓰고 나면 호출 (DB 연결 정리)
   ```python
   results = manager.call("search_api_data_vector", query_vector=[0.1, 0.2, ...], top_k=3)
   ```
+
+### `save_api_data_meta`
+- **하는 일**: 외부 API의 추가 정보(제공 기관·기준 연도·설명)를 저장한다(있으면 덮어쓴다, 빈 문자열은 비운다).
+  `sql/api_data_meta.sql`을 먼저 적용해야 한다. API를 지우면 같이 지워진다.
+- **필수 인자**: `url (str)` / **선택 인자**: `provider (str)`, `base_year (int)`, `description (str)`
+- **반환값**: 저장된 행 (`dict`)
+
+### `list_api_data_meta`
+- **하는 일**: 전체 추가 정보.
+- **반환값**: `list[dict]`, 키: url, provider, base_year, description, updated_at
 
 ## 단어사전 관리
 
