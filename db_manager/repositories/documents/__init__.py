@@ -6,6 +6,7 @@ from .department_option_repository import DepartmentOptionRepository
 from .report_type_option_repository import ReportTypeOptionRepository
 from .document_category_repository import DocumentCategoryRepository
 from .external_document_repository import ExternalDocumentRepository
+from .document_upload_repository import DocumentUploadRepository
 
 __all__ = [
     "DocumentRepository",
@@ -16,4 +17,5 @@ __all__ = [
     "ReportTypeOptionRepository",
     "DocumentCategoryRepository",
     "ExternalDocumentRepository",
+    "DocumentUploadRepository",
 ]

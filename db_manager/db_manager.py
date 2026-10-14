@@ -25,6 +25,7 @@ from .repositories import (
     ReportTypeOptionRepository,
     DocumentCategoryRepository,
     ExternalDocumentRepository,
+    DocumentUploadRepository,
 )
 from .repositories import UserRepository, PermissionRepository
 from .repositories import VocabRepository
@@ -155,6 +156,7 @@ class DBManager:
         report_type_option_repo = ReportTypeOptionRepository(db)
         document_category_repo = DocumentCategoryRepository(db)
         external_document_repo = ExternalDocumentRepository(db)
+        document_upload_repo = DocumentUploadRepository(db)
         user_repo = UserRepository(db)
         permission_repo = PermissionRepository(db)
         notification_repo = NotificationRepository(db)
@@ -205,6 +207,8 @@ class DBManager:
             "delete_document_category": document_category_repo.delete,
             "set_external_document": external_document_repo.update,
             "list_external_documents": external_document_repo.select_many,
+            "save_document_upload": document_upload_repo.insert,
+            "list_document_uploads": document_upload_repo.select_many,
             "update_session_title": session_repo.update_title,
             "login": user_repo.select_one,
             "create_user_account": user_repo.insert,

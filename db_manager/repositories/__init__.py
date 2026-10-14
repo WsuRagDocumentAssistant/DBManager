@@ -8,6 +8,7 @@ from .documents import (
     ReportTypeOptionRepository,
     DocumentCategoryRepository,
     ExternalDocumentRepository,
+    DocumentUploadRepository,
 )
 from .users import UserRepository, CredentialRepository, PermissionRepository
 from .api_data import ApiDataRepository, ApiDataMetaRepository
@@ -28,6 +29,7 @@ __all__ = [
     "ReportTypeOptionRepository",
     "DocumentCategoryRepository",
     "ExternalDocumentRepository",
+    "DocumentUploadRepository",
     "UserRepository",
     "CredentialRepository",
     "PermissionRepository",

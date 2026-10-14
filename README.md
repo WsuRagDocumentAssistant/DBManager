@@ -399,6 +399,21 @@ documents 를 쓰고, `external_documents` 표에 id 가 있으면 외부 문서
 - **하는 일**: 외부 문서 id 목록.
 - **반환값**: `list[int]`
 
+## 문서 등록 기록 (내부 문서 등록 화면)
+
+문서를 누가, 어느 등록에서 올렸는지. 내부 문서 등록 화면이 "내가 마지막으로 등록한 문서"만 보여 주는 데 쓴다.
+`batch_id`는 등록 버튼 한 번에 같이 올린 묶음이다. `sql/document_uploads.sql`을 먼저 적용해야 한다.
+문서 행이 지워지면 같이 지워진다.
+
+### `save_document_upload`
+- **하는 일**: 올린 사람·묶음을 기록한다(있으면 덮어쓴다 — 같은 파일을 다시 올린 경우).
+- **필수 인자**: `document_id (int)`, `user_id (str)` / **선택 인자**: `batch_id (str)`
+- **반환값**: 저장된 행 (`dict`)
+
+### `list_document_uploads`
+- **하는 일**: 전체 기록.
+- **반환값**: `list[dict]`, 키: document_id, user_id, batch_id, uploaded_at
+
 ## 공공데이터 관리
 
 ### `insert_api_data`
